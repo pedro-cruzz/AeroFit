@@ -8,14 +8,20 @@
         <span class="eyebrow">{{ routine.type }} | {{ routine.level }}</span>
         <h1>{{ routine.name }}</h1>
         <p>{{ routine.description }}</p>
+        <p>
+            <span class="material-symbols-outlined">calendar_month</span>
+            {{ routine.days_summary }}
+        </p>
     </div>
-    <form method="post" action="{% url 'dashboard:delete_routine' routine.pk %}">
-        {% csrf_token %}
-        <button class="btn btn-danger-soft" type="submit" onclick="return confirm('Excluir este treino e todo o historico dele?');">
-            <span class="material-symbols-outlined">delete</span>
-            Excluir treino
-        </button>
-    </form>
+    {% if can_manage %}
+        <form method="post" action="{% url 'dashboard:delete_routine' routine.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-danger-soft" type="submit" onclick="return confirm('Excluir este treino e todo o historico dele?');">
+                <span class="material-symbols-outlined">delete</span>
+                Excluir treino
+            </button>
+        </form>
+    {% endif %}
 </header>
 
 <section class="row g-4 mb-4">
@@ -44,48 +50,65 @@
 
 <section class="surface-card mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="section-title">Executar treino</h2>
-        <a class="btn btn-ghost" href="{% url 'dashboard:workout_builder' %}">
+        <h2 class="section-title">{% if can_manage %}Executar treino{% else %}Modelo sugerido{% endif %}</h2>
+        <a class="btn btn-ghost" href="{% url 'dashboard:workouts' %}?modal=1">
             <span class="material-symbols-outlined">add</span>
             Novo treino
         </a>
     </div>
     <form method="post">
         {% csrf_token %}
-        <div class="list-group list-group-flush workout-list">
-            {% for item in routine.items.all %}
+        <div class="list-group list-group-flush workout-list execution-list">
+            {% for row in execution_rows %}
                 <div class="list-group-item workout-item execution-item">
-                    <span class="d-flex align-items-center gap-3">
-                        <span class="step-pill">{{ item.order|stringformat:"02d" }}</span>
-                        <span>
-                            <strong>{{ item.exercise.name }}</strong>
-                            <small>{{ item.meta }} | descanso {{ item.rest_seconds }}s</small>
-                        </span>
-                    </span>
-                    <span class="execution-controls">
+                    <div class="execution-main">
+                        <span class="step-pill">{{ row.item.order|stringformat:"02d" }}</span>
+                        <div>
+                            <strong>{{ row.item.exercise.name }}</strong>
+                            <div class="execution-meta">
+                                <span>{{ row.item.meta }}</span>
+                                <span>Descanso {{ row.item.rest_seconds }}s</span>
+                                {% if row.previous_load %}<span>{{ row.previous_load }}</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="execution-controls">
                         <label class="load-field">
                             <span class="mono-label">Carga kg</span>
-                            <input class="form-control form-control-sm" type="number" step="0.5" min="0" name="load_{{ item.id }}" placeholder="0">
+                            <input class="form-control form-control-sm" type="number" step="0.5" min="0" name="load_{{ row.item.id }}" placeholder="{{ row.previous_load|default:'0' }}">
+                        </label>
+                        <label class="load-field rpe-field">
+                            <span class="mono-label">RPE</span>
+                            <select class="form-select form-select-sm" name="rpe_{{ row.item.id }}">
+                                <option value="">-</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                            </select>
                         </label>
                         <label class="complete-check">
-                            <input class="form-check-input precision-check" type="checkbox" name="completed_{{ item.id }}" checked>
+                            <input class="form-check-input precision-check" type="checkbox" name="completed_{{ row.item.id }}" checked>
                             <span>Concluido</span>
                         </label>
-                        <a href="{{ item.exercise.get_absolute_url }}" class="btn btn-sm btn-ghost">
+                        <a href="{{ row.item.exercise.get_absolute_url }}" class="btn btn-sm btn-ghost">
                             <span class="material-symbols-outlined">play_circle</span>
                             Execucao
                         </a>
-                        <button
-                            class="btn btn-sm btn-danger-soft"
-                            type="submit"
-                            formaction="{% url 'dashboard:delete_workout_exercise' routine.pk item.pk %}"
-                            formmethod="post"
-                            onclick="return confirm('Remover {{ item.exercise.name }} deste treino?');"
-                        >
-                            <span class="material-symbols-outlined">delete</span>
-                            Remover
-                        </button>
-                    </span>
+                        {% if can_manage %}
+                            <button
+                                class="btn btn-sm btn-danger-soft"
+                                type="submit"
+                                formaction="{% url 'dashboard:delete_workout_exercise' routine.pk row.item.pk %}"
+                                formmethod="post"
+                                onclick="return confirm('Remover {{ row.item.exercise.name }} deste treino?');"
+                            >
+                                <span class="material-symbols-outlined">delete</span>
+                                Remover
+                            </button>
+                        {% endif %}
+                    </div>
                 </div>
             {% empty %}
                 <div class="surface-empty">
@@ -94,14 +117,21 @@
                 </div>
             {% endfor %}
         </div>
-        <label class="field-group mt-4">
-            <span class="mono-label">Observacoes do treino</span>
-            <input class="form-control" name="notes" placeholder="Ex: boa energia, aumentar carga no supino">
-        </label>
-        <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">
-            <span class="material-symbols-outlined filled">check_circle</span>
-            Concluir treino e salvar cargas
-        </button>
+        {% if can_manage %}
+            <label class="field-group mt-4">
+                <span class="mono-label">Observacoes do treino</span>
+                <input class="form-control" name="notes" placeholder="Ex: boa energia, aumentar carga no supino">
+            </label>
+            <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">
+                <span class="material-symbols-outlined filled">check_circle</span>
+                Concluir treino e salvar cargas
+            </button>
+        {% else %}
+            <a class="btn btn-primary btn-lg w-100 mt-4" href="{% url 'dashboard:workouts' %}?modal=1">
+                <span class="material-symbols-outlined">add</span>
+                Montar minha planilha
+            </a>
+        {% endif %}
     </form>
 </section>
 
@@ -119,6 +149,7 @@
                         <span>
                             {{ log.workout_exercise.exercise.name }}:
                             {% if log.load_kg %}{{ log.load_kg }} kg{% else %}sem carga{% endif %}
+                            {% if log.rpe %} | RPE {{ log.rpe }}{% endif %}
                         </span>
                     {% endfor %}
                 </div>

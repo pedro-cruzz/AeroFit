@@ -1,8 +1,16 @@
+from django.conf import settings
 from django.db import models
 from django.urls import reverse
 
 
 class AthleteProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="athlete_profile",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=120)
     level = models.PositiveIntegerField(default=1)
     streak_days = models.PositiveIntegerField(default=0)
@@ -23,6 +31,13 @@ class AthleteProfile(models.Model):
 
 
 class PhysicalAttribute(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="physical_attributes",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=80)
     level = models.PositiveIntegerField(default=1)
     progress = models.PositiveIntegerField(default=0)
@@ -84,7 +99,23 @@ class Exercise(models.Model):
 
 class WorkoutRoutine(models.Model):
     GOAL_CHOICES = Exercise.FOCUS_CHOICES
+    WEEKDAY_CHOICES = [
+        ("seg", "Segunda"),
+        ("ter", "Terca"),
+        ("qua", "Quarta"),
+        ("qui", "Quinta"),
+        ("sex", "Sexta"),
+        ("sab", "Sabado"),
+        ("dom", "Domingo"),
+    ]
 
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="workout_routines",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=120)
     goal = models.CharField(max_length=20, choices=GOAL_CHOICES)
     description = models.TextField(blank=True)
@@ -94,6 +125,7 @@ class WorkoutRoutine(models.Model):
     level = models.CharField(max_length=60, default="Intermediario")
     progress = models.PositiveIntegerField(default=0)
     is_template = models.BooleanField(default=False)
+    training_days = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -105,6 +137,18 @@ class WorkoutRoutine(models.Model):
     @property
     def type(self):
         return self.get_goal_display()
+
+    @property
+    def day_labels(self):
+        labels = dict(self.WEEKDAY_CHOICES)
+        return [labels.get(day, day) for day in self.training_days]
+
+    @property
+    def days_summary(self):
+        labels = self.day_labels
+        if not labels:
+            return "Sem dias definidos"
+        return ", ".join(labels)
 
 
 class WorkoutExercise(models.Model):
@@ -148,12 +192,36 @@ class WorkoutSessionExercise(models.Model):
     load_kg = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     sets_done = models.PositiveIntegerField(default=0)
     reps_done = models.CharField(max_length=40, blank=True)
+    rpe = models.PositiveSmallIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ["workout_exercise__order", "id"]
 
     def __str__(self):
         return f"{self.session} - {self.workout_exercise.exercise}"
+
+
+class UserXpEvent(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="xp_events")
+    session = models.OneToOneField(
+        WorkoutSession,
+        on_delete=models.CASCADE,
+        related_name="xp_event",
+        null=True,
+        blank=True,
+    )
+    total_xp = models.PositiveIntegerField(default=0)
+    strength_xp = models.PositiveIntegerField(default=0)
+    endurance_xp = models.PositiveIntegerField(default=0)
+    base_xp = models.PositiveIntegerField(default=0)
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} +{self.total_xp} XP"
 
 
 class WeeklyPlan(models.Model):
@@ -209,6 +277,39 @@ class LeaderboardEntry(models.Model):
 
     def __str__(self):
         return f"#{self.rank} {self.name}"
+
+
+class LoginAttempt(models.Model):
+    identity_hash = models.CharField(max_length=64, unique=True)
+    attempts = models.PositiveIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True)
+    last_attempt_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-last_attempt_at"]
+
+    def __str__(self):
+        return f"{self.identity_hash[:12]} ({self.attempts})"
+
+
+class UserActivityLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="activity_logs")
+    path = models.CharField(max_length=220)
+    method = models.CharField(max_length=10)
+    status_code = models.PositiveIntegerField()
+    ip_hash = models.CharField(max_length=64, blank=True)
+    user_agent = models.CharField(max_length=220, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+            models.Index(fields=["-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} {self.method} {self.path}"
 
 
 class Challenge(models.Model):

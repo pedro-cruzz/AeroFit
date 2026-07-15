@@ -20,8 +20,19 @@
                 <span>AeroFit</span>
             </a>
             <div class="d-flex align-items-center gap-3">
+                {% if request.user.is_authenticated %}
+                    <span class="status-chip">{{ request.user.username }}</span>
+                {% endif %}
                 <span class="status-chip">Level {{ profile.level|default:"1" }}</span>
                 <span class="material-symbols-outlined text-primary-symbol filled">military_tech</span>
+                {% if request.user.is_authenticated %}
+                    <form method="post" action="{% url 'dashboard:logout' %}" class="logout-form">
+                        {% csrf_token %}
+                        <button class="icon-button logout-button" type="submit" aria-label="Sair">
+                            <span class="material-symbols-outlined">logout</span>
+                        </button>
+                    </form>
+                {% endif %}
             </div>
         </header>
 

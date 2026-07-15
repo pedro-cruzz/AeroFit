@@ -13,7 +13,7 @@
     </div>
     <div class="col-md-8">
         <article class="surface-card h-100">
-            <h2 class="eyebrow mb-3">Atributos físicos</h2>
+            <h2 class="eyebrow mb-3">Atributos fisicos</h2>
             <div class="v-stack">
                 {% for attribute in attributes %}
                     <div>
@@ -33,54 +33,74 @@
 
 <section class="mb-4">
     <h2 class="eyebrow mb-3">Cronograma</h2>
-    <div class="scroll-row">
-        {% for day in week_plan %}
-            <article class="routine-day {% if day.is_today %}is-today{% endif %}">
-                <div class="d-flex justify-content-between align-items-center mono-label mb-2">
-                    <span>{{ day.day }}</span>
-                    {% if day.is_today %}<span class="today-badge">Hoje</span>{% endif %}
-                </div>
-                <h3>{% if day.routine %}{{ day.routine.name }}{% else %}{{ day.detail }}{% endif %}</h3>
-                <p>{{ day.detail }}</p>
-            </article>
-        {% endfor %}
-    </div>
+    {% if week_plan %}
+        <div class="scroll-row">
+            {% for day in week_plan %}
+                <article class="routine-day {% if day.is_today %}is-today{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center mono-label mb-2">
+                        <span>{{ day.day }}</span>
+                        {% if day.is_today %}<span class="today-badge">Hoje</span>{% endif %}
+                    </div>
+                    {% for routine in day.routines %}
+                        <h3>{{ routine.name }}</h3>
+                        <p>{{ routine.days_summary }}</p>
+                    {% endfor %}
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="surface-empty compact-empty">
+            <span class="material-symbols-outlined">calendar_month</span>
+            <p>Nenhuma planilha com dias definidos ainda.</p>
+        </div>
+    {% endif %}
 </section>
 
 <section class="surface-card accent-top mb-5">
     <div class="d-flex align-items-center gap-2 mb-4">
         <span class="material-symbols-outlined text-primary-symbol">fitness_center</span>
-        <h2 class="section-title m-0">Treino de hoje: {% if today_plan and today_plan.routine %}{{ today_plan.routine.name }}{% else %}Monte seu treino{% endif %}</h2>
+        <h2 class="section-title m-0">Treino de hoje: {% if today_routine %}{{ today_routine.name }}{% else %}Monte sua planilha{% endif %}</h2>
     </div>
-    <div class="list-group list-group-flush workout-list">
-        {% for item in today_workout %}
-            <label class="list-group-item workout-item">
-                <span class="d-flex align-items-center gap-3">
-                    <input class="form-check-input precision-check" type="checkbox">
-                    <span>
-                        {% if item.exercise.is_run %}<span class="material-symbols-outlined run-icon">directions_run</span>{% endif %}
-                        <strong>{{ item.exercise.name }}</strong>
-                        <small>{{ item.meta }}</small>
-                    </span>
-                </span>
-                {% if not item.exercise.is_run %}
-                    <a href="{{ item.exercise.get_absolute_url }}" class="btn btn-sm btn-ghost">
-                        <span class="material-symbols-outlined">play_circle</span>
-                        Execução
-                    </a>
-                {% endif %}
-            </label>
-        {% empty %}
-            <div class="surface-empty">
-                <span class="material-symbols-outlined">add_task</span>
-                <p>Nenhum treino para hoje. Monte uma rotina nova e salve no SQLite.</p>
-                <a class="btn btn-primary" href="{% url 'dashboard:workout_builder' %}">Montar treino</a>
+    {% if today_routine and today_workout_rows %}
+        <form method="post" action="{% url 'dashboard:routine_detail' today_routine.pk %}" class="today-workout-form">
+            {% csrf_token %}
+            <div class="list-group list-group-flush workout-list">
+                {% for row in today_workout_rows %}
+                    <div class="list-group-item workout-item today-workout-item">
+                        <label class="today-workout-main">
+                            <input class="form-check-input precision-check" type="checkbox" name="completed_{{ row.item.id }}" checked>
+                            <span>
+                                {% if row.item.exercise.is_run %}<span class="material-symbols-outlined run-icon">directions_run</span>{% endif %}
+                                <strong>{{ row.item.exercise.name }}</strong>
+                                <small>{{ row.item.meta }}{% if row.previous_load %} | {{ row.previous_load }}{% endif %}</small>
+                            </span>
+                        </label>
+                        <span class="today-workout-controls">
+                            {% if not row.item.exercise.is_run %}
+                                <label class="load-field today-load-field">
+                                    <span class="mono-label">Carga kg</span>
+                                    <input class="form-control form-control-sm" type="number" step="0.5" min="0" name="load_{{ row.item.id }}" placeholder="{{ row.previous_load|default:'0' }}">
+                                </label>
+                            {% endif %}
+                            <a href="{{ row.item.exercise.get_absolute_url }}" class="btn btn-sm btn-ghost">
+                                <span class="material-symbols-outlined">play_circle</span>
+                                Execucao
+                            </a>
+                        </span>
+                    </div>
+                {% endfor %}
             </div>
-        {% endfor %}
-    </div>
-    <button class="btn btn-primary btn-lg w-100 mt-4">
-        <span class="material-symbols-outlined filled">check_circle</span>
-        Concluir treino e coletar XP
-    </button>
+            <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">
+                <span class="material-symbols-outlined filled">check_circle</span>
+                Concluir treino e coletar XP
+            </button>
+        </form>
+    {% else %}
+        <div class="surface-empty">
+            <span class="material-symbols-outlined">add_task</span>
+            <p>Nenhum treino para hoje. Monte sua planilha personalizada com series e repeticoes.</p>
+            <a class="btn btn-primary" href="{% url 'dashboard:workouts' %}?modal=1">Montar treino</a>
+        </div>
+    {% endif %}
 </section>
 {% endblock %}

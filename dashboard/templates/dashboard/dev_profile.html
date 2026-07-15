@@ -4,9 +4,9 @@
 
 {% block content %}
 <header class="page-heading">
-    <span class="eyebrow">Area administrativa</span>
+    <span class="eyebrow">Console administrativo</span>
     <h1>Perfil Dev</h1>
-    <p>Gerencie usuarios, acompanhe sessoes online e cadastre novos exercicios para a biblioteca.</p>
+    <p>Central para gerenciar alunos e acompanhar sinais reais de uso do sistema.</p>
 </header>
 
 <section class="row g-4 mb-4">
@@ -20,151 +20,56 @@
     <div class="col-md-4">
         <article class="surface-card stat-card h-100">
             <span class="material-symbols-outlined stat-icon text-primary-symbol">wifi_tethering</span>
-            <strong class="stat-number">{{ online_users|length }}</strong>
-            <span class="eyebrow">Online</span>
+            <strong class="stat-number">{{ online_count }}</strong>
+            <span class="eyebrow">Sessoes online</span>
         </article>
     </div>
     <div class="col-md-4">
         <article class="surface-card stat-card h-100">
-            <span class="material-symbols-outlined stat-icon text-primary-symbol">exercise</span>
-            <strong class="stat-number">{{ total_exercises }}</strong>
-            <span class="eyebrow">Exercicios</span>
+            <span class="material-symbols-outlined stat-icon text-primary-symbol">touch_app</span>
+            <strong class="stat-number">{{ active_now_count }}</strong>
+            <span class="eyebrow">Usando agora</span>
         </article>
     </div>
 </section>
 
-<section class="dev-grid mb-5">
-    <article class="surface-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="section-title">Usuarios</h2>
-            <span class="mono-label text-secondary-soft">{{ total_users }} cadastros</span>
+<section class="dev-action-grid mb-5">
+    <a class="surface-card dev-action-card" href="{% url 'dashboard:dev_users' %}">
+        <span class="material-symbols-outlined">manage_accounts</span>
+        <div>
+            <h2>Usuarios</h2>
+            <p>Criar alunos, ver cadastros, sessoes abertas e quem esta ativo.</p>
         </div>
-        <div class="dev-table-wrap">
-            <table class="dev-table">
-                <thead>
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Email</th>
-                        <th>Perfil</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                        <tr>
-                            <td>
-                                <strong>{{ user.username }}</strong>
-                                <span>{% if user.get_full_name %}{{ user.get_full_name }}{% else %}Sem nome completo{% endif %}</span>
-                            </td>
-                            <td>{{ user.email|default:"-" }}</td>
-                            <td>{% if user.is_staff %}Dev{% else %}Atleta{% endif %}</td>
-                            <td>
-                                {% if user.id in online_user_ids %}
-                                    <span class="status-dot is-online">Online</span>
-                                {% elif user.is_active %}
-                                    <span class="status-dot">Ativo</span>
-                                {% else %}
-                                    <span class="status-dot is-muted">Inativo</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="4">Nenhum usuario cadastrado ainda.</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    </a>
+    <a class="surface-card dev-action-card" href="{% url 'dashboard:dev_development' %}">
+        <span class="material-symbols-outlined">terminal</span>
+        <div>
+            <h2>Desenvolvimento</h2>
+            <p>Auditar logs de uso, ultimos acessos, rotas chamadas e atividade real.</p>
         </div>
-    </article>
-
-    <article class="surface-card">
-        <h2 class="section-title mb-4">Online agora</h2>
-        <div class="v-stack">
-            {% for user in online_users %}
-                <div class="online-user">
-                    <span class="material-symbols-outlined text-primary-symbol">account_circle</span>
-                    <div>
-                        <strong>{{ user.username }}</strong>
-                        <small>{% if user.get_full_name %}{{ user.get_full_name }}{% else %}Sessao ativa{% endif %}</small>
-                    </div>
-                </div>
-            {% empty %}
-                <div class="surface-empty compact-empty">
-                    <span class="material-symbols-outlined">person_off</span>
-                    <p>Nenhum usuario autenticado online agora.</p>
-                </div>
-            {% endfor %}
-        </div>
-    </article>
-</section>
-
-<section class="dev-grid mb-5">
-    <form method="post" class="surface-card">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="create_user">
-        <h2 class="section-title mb-4">Criar usuario</h2>
-        {% if user_form.non_field_errors %}
-            <div class="alert alert-error">{{ user_form.non_field_errors|striptags }}</div>
-        {% endif %}
-        <div class="form-grid">
-            {% for field in user_form %}
-                <label class="field-group {% if field.field.widget.input_type == 'checkbox' %}check-field{% endif %}">
-                    <span class="mono-label">{{ field.label }}</span>
-                    {{ field }}
-                    {% if field.errors %}<small class="form-error">{{ field.errors|striptags }}</small>{% endif %}
-                </label>
-            {% endfor %}
-        </div>
-        <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">
-            <span class="material-symbols-outlined">person_add</span>
-            Criar usuario
-        </button>
-    </form>
-
-    <article class="surface-card">
-        <h2 class="section-title mb-4">Ultimos exercicios</h2>
-        <div class="v-stack">
-            {% for exercise in recent_exercises %}
-                <a class="exercise-row" href="{{ exercise.get_absolute_url }}">
-                    <span class="material-symbols-outlined">fitness_center</span>
-                    <div>
-                        <strong>{{ exercise.name }}</strong>
-                        <small>{{ exercise.category.name }} | {{ exercise.primary_muscle }}</small>
-                    </div>
-                </a>
-            {% empty %}
-                <div class="surface-empty compact-empty">
-                    <span class="material-symbols-outlined">exercise</span>
-                    <p>Nenhum exercicio cadastrado ainda.</p>
-                </div>
-            {% endfor %}
-        </div>
-    </article>
+    </a>
 </section>
 
 <section class="surface-card mb-5">
-    <h2 class="section-title mb-4">Cadastrar exercicio</h2>
-    <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="create_exercise">
-        {% if exercise_form.non_field_errors %}
-            <div class="alert alert-error">{{ exercise_form.non_field_errors|striptags }}</div>
-        {% endif %}
-        <div class="form-grid exercise-form-grid">
-            {% for field in exercise_form %}
-                <label class="field-group {% if field.field.widget.input_type == 'checkbox' %}check-field{% endif %}">
-                    <span class="mono-label">{{ field.label }}</span>
-                    {{ field }}
-                    {% if field.help_text %}<small class="field-hint">{{ field.help_text }}</small>{% endif %}
-                    {% if field.errors %}<small class="form-error">{{ field.errors|striptags }}</small>{% endif %}
-                </label>
-            {% endfor %}
-        </div>
-        <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">
-            <span class="material-symbols-outlined">add_task</span>
-            Cadastrar exercicio
-        </button>
-    </form>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="section-title">Eventos recentes</h2>
+        <a class="mono-link text-secondary-soft" href="{% url 'dashboard:dev_development' %}">ver logs</a>
+    </div>
+    <div class="v-stack">
+        {% for log in recent_logs %}
+            <article class="log-row">
+                <span class="status-dot">{{ log.status_code }}</span>
+                <div>
+                    <strong>{{ log.user.username }}</strong>
+                    <small>{{ log.method }} {{ log.path }} | {{ log.created_at|date:"d/m/Y H:i:s" }}</small>
+                </div>
+            </article>
+        {% empty %}
+            <div class="surface-empty compact-empty">
+                <span class="material-symbols-outlined">history</span>
+                <p>Nenhum evento registrado ainda.</p>
+            </div>
+        {% endfor %}
+    </div>
 </section>
 {% endblock %}

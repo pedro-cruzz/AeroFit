@@ -1,0 +1,40 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - Editar {{ exercise.name }}{% endblock %}
+
+{% block content %}
+<header class="page-heading routine-heading">
+    <div>
+        <span class="eyebrow">Biblioteca</span>
+        <h1>Editar treino</h1>
+        <p>Atualize os dados do treino que aparece para os alunos montarem planilhas.</p>
+    </div>
+    <a class="btn btn-ghost" href="{% url 'dashboard:dev_exercise_catalog' %}">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Exercicios
+    </a>
+</header>
+
+<section class="surface-card mb-5">
+    <form method="post">
+        {% csrf_token %}
+        {% if exercise_form.non_field_errors %}
+            <div class="alert alert-error">{{ exercise_form.non_field_errors|striptags }}</div>
+        {% endif %}
+        <div class="form-grid exercise-form-grid">
+            {% for field in exercise_form %}
+                <label class="field-group {% if field.field.widget.input_type == 'checkbox' %}check-field{% endif %}">
+                    <span class="mono-label">{{ field.label }}</span>
+                    {{ field }}
+                    {% if field.help_text %}<small class="field-hint">{{ field.help_text }}</small>{% endif %}
+                    {% if field.errors %}<small class="form-error">{{ field.errors|striptags }}</small>{% endif %}
+                </label>
+            {% endfor %}
+        </div>
+        <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">
+            <span class="material-symbols-outlined">save</span>
+            Salvar treino
+        </button>
+    </form>
+</section>
+{% endblock %}

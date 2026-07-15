@@ -10,39 +10,191 @@
     </div>
 </section>
 
+<div class="modal fade" id="workoutCreateModal" tabindex="-1" aria-labelledby="workoutCreateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable surface-modal-dialog">
+        <div class="modal-content surface-modal">
+            <div class="modal-header">
+                <div>
+                    <span class="eyebrow">Area do aluno</span>
+                    <h2 class="modal-title section-title" id="workoutCreateModalLabel">Montar treino</h2>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-grid mb-4">
+                        <label class="field-group">
+                            <span class="mono-label">Nome do treino</span>
+                            <input class="form-control" name="name" placeholder="Ex: Superior pesado">
+                        </label>
+                        <label class="field-group">
+                            <span class="mono-label">Objetivo</span>
+                            <select class="form-select" name="goal">
+                                {% for value, label in goals %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                    </div>
+                    <div class="weekday-picker mb-4">
+                        <span class="mono-label">Dias da semana</span>
+                        <div class="weekday-options">
+                            {% for value, label in weekday_choices %}
+                                <label class="weekday-option">
+                                    <input class="form-check-input precision-check" type="checkbox" name="training_days" value="{{ value }}">
+                                    <span>{{ label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="builder-filter-bar mb-4" aria-label="Filtrar exercicios por categoria">
+                        <button class="builder-filter active" type="button" data-category-filter="all">Todos</button>
+                        {% for entry in workout_categories %}
+                            <button class="builder-filter accent-{{ entry.category.accent }}" type="button" data-category-filter="{{ entry.category.id }}">{{ entry.category.name }}</button>
+                        {% endfor %}
+                    </div>
+                    <div class="builder-category-list">
+                        {% for entry in workout_categories %}
+                            <section class="builder-category accent-{{ entry.category.accent }}" data-builder-category="{{ entry.category.id }}">
+                                <div class="builder-category-title">
+                                    <span class="material-symbols-outlined">{{ entry.category.icon }}</span>
+                                    <h2>{{ entry.category.name }}</h2>
+                                </div>
+                                <div class="body-split-grid">
+                                    <div class="body-split">
+                                        <div class="body-split-title">
+                                            <span class="material-symbols-outlined">accessibility_new</span>
+                                            <h3>Superior</h3>
+                                            <span class="split-count">{{ entry.upper_exercises|length }}</span>
+                                        </div>
+                                        <div class="exercise-picker compact-picker">
+                                            {% for exercise in entry.upper_exercises %}
+                                                <label class="exercise-option exercise-goal-{{ exercise.focus }}">
+                                                    <span class="exercise-option-main">
+                                                        <input class="form-check-input precision-check" type="checkbox" name="exercises" value="{{ exercise.id }}">
+                                                        <span>
+                                                            <strong>{{ exercise.name }}</strong>
+                                                            <small>{{ exercise.primary_muscle }} | {{ exercise.get_focus_display }}</small>
+                                                        </span>
+                                                    </span>
+                                                    <span class="exercise-prescription">
+                                                        <span class="mini-field">
+                                                            <span class="mono-label">Series</span>
+                                                            <input class="form-control form-control-sm" type="number" min="1" max="12" name="sets_{{ exercise.id }}" value="{{ exercise.default_sets }}">
+                                                        </span>
+                                                        <span class="mini-field">
+                                                            <span class="mono-label">Reps</span>
+                                                            <input class="form-control form-control-sm" name="reps_{{ exercise.id }}" value="{{ exercise.default_reps }}">
+                                                        </span>
+                                                    </span>
+                                                </label>
+                                            {% empty %}
+                                                <div class="surface-empty compact-empty">
+                                                    <span class="material-symbols-outlined">playlist_add</span>
+                                                    <p>Nenhum exercicio superior nesta categoria.</p>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="body-split">
+                                        <div class="body-split-title">
+                                            <span class="material-symbols-outlined">directions_run</span>
+                                            <h3>Inferior</h3>
+                                            <span class="split-count">{{ entry.lower_exercises|length }}</span>
+                                        </div>
+                                        <div class="exercise-picker compact-picker">
+                                            {% for exercise in entry.lower_exercises %}
+                                                <label class="exercise-option exercise-goal-{{ exercise.focus }}">
+                                                    <span class="exercise-option-main">
+                                                        <input class="form-check-input precision-check" type="checkbox" name="exercises" value="{{ exercise.id }}">
+                                                        <span>
+                                                            <strong>{{ exercise.name }}</strong>
+                                                            <small>{{ exercise.primary_muscle }} | {{ exercise.get_focus_display }}</small>
+                                                        </span>
+                                                    </span>
+                                                    <span class="exercise-prescription">
+                                                        <span class="mini-field">
+                                                            <span class="mono-label">Series</span>
+                                                            <input class="form-control form-control-sm" type="number" min="1" max="12" name="sets_{{ exercise.id }}" value="{{ exercise.default_sets }}">
+                                                        </span>
+                                                        <span class="mini-field">
+                                                            <span class="mono-label">Reps</span>
+                                                            <input class="form-control form-control-sm" name="reps_{{ exercise.id }}" value="{{ exercise.default_reps }}">
+                                                        </span>
+                                                    </span>
+                                                </label>
+                                            {% empty %}
+                                                <div class="surface-empty compact-empty">
+                                                    <span class="material-symbols-outlined">playlist_add</span>
+                                                    <p>Nenhum exercicio inferior nesta categoria.</p>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">
+                        <span class="material-symbols-outlined">close</span>
+                        Cancelar
+                    </button>
+                    <button class="btn btn-primary" type="submit">
+                        <span class="material-symbols-outlined">save</span>
+                        Salvar treino
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <section class="mb-5">
     <div class="d-flex justify-content-between align-items-end mb-3">
-        <h1 class="section-title">Minhas rotinas</h1>
-        <a class="btn btn-primary" href="{% url 'dashboard:workout_builder' %}">
+        <h1 class="section-title">Minhas planilhas</h1>
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#workoutCreateModal" data-category-open="all">
             <span class="material-symbols-outlined">add</span>
-            Montar treino
-        </a>
+            Montar planilha
+        </button>
     </div>
     <div class="scroll-row">
         {% for routine in routines %}
             <article class="routine-card-shell">
-                <a class="routine-card" href="{% url 'dashboard:routine_detail' routine.pk %}" style="background-image: url('{{ routine.image_url }}')">
+                <a class="routine-card routine-goal-{{ routine.goal }}" href="{% url 'dashboard:routine_detail' routine.pk %}" style="background-image: url('{{ routine.image_url }}')">
                     <div class="routine-overlay"></div>
                     <div class="routine-content">
-                        <span class="eyebrow text-primary-symbol">{{ routine.type }}</span>
+                        <span class="eyebrow goal-pill routine-goal-{{ routine.goal }}">{{ routine.type }}</span>
                         <h2>{{ routine.name }}</h2>
                         <p>
                             <span class="material-symbols-outlined">schedule</span>{{ routine.duration_minutes }} min
                             <span class="material-symbols-outlined">bolt</span>{{ routine.calories }} kcal
                         </p>
+                        <p class="routine-days">
+                            <span class="material-symbols-outlined">calendar_month</span>{{ routine.days_summary }}
+                        </p>
                     </div>
                 </a>
-                <form method="post" action="{% url 'dashboard:delete_routine' routine.pk %}" class="routine-delete-form">
-                    {% csrf_token %}
-                    <button class="icon-danger" type="submit" aria-label="Excluir {{ routine.name }}" onclick="return confirm('Excluir este treino e todo o historico dele?');">
-                        <span class="material-symbols-outlined">delete</span>
-                    </button>
-                </form>
+                <div class="routine-action-bar labeled-actions">
+                    <a class="action-button action-button-edit" href="{% url 'dashboard:edit_routine' routine.pk %}" aria-label="Editar {{ routine.name }}">
+                        <span class="material-symbols-outlined">edit</span>
+                        Editar
+                    </a>
+                    <form method="post" action="{% url 'dashboard:delete_routine' routine.pk %}">
+                        {% csrf_token %}
+                        <button class="action-button action-button-danger" type="submit" aria-label="Excluir {{ routine.name }}" onclick="return confirm('Excluir este treino e todo o historico dele?');">
+                            <span class="material-symbols-outlined">delete</span>
+                            Excluir
+                        </button>
+                    </form>
+                </div>
             </article>
         {% empty %}
             <div class="surface-empty w-100">
                 <span class="material-symbols-outlined">fitness_center</span>
-                <p>Nenhum treino salvo ainda. Monte seu primeiro treino para comecar.</p>
+                <p>Nenhuma planilha salva ainda. Monte seu primeiro treino personalizado para comecar.</p>
             </div>
         {% endfor %}
     </div>
@@ -53,36 +205,49 @@
     <div class="row g-3">
         {% for category in categories %}
             <div class="col-6 col-lg-3">
-                <article class="category-card accent-{{ category.accent }}">
+                <button class="category-card accent-{{ category.accent }}" type="button" data-bs-toggle="modal" data-bs-target="#workoutCreateModal" data-category-open="{{ category.id }}">
                     <span class="material-symbols-outlined">{{ category.icon }}</span>
                     <strong>{{ category.name }}</strong>
-                </article>
+                </button>
             </div>
         {% endfor %}
     </div>
 </section>
 
-<section class="mb-5">
-    <h2 class="section-title mb-3">Sugerido para você</h2>
-    <div class="v-stack">
-        {% for suggestion in suggestions %}
-            <article class="surface-card compact-row">
-                <div class="suggestion-thumb">
-                    <span class="material-symbols-outlined">fitness_center</span>
-                </div>
-                <div class="flex-grow-1">
-                    <h3>{{ suggestion.name }}</h3>
-                    <p>{{ suggestion.description }}</p>
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="precision-progress flex-grow-1">
-                            <span class="bar-indigo" style="width: {{ suggestion.progress }}%"></span>
-                        </div>
-                        <span class="mono-label text-secondary-soft">{{ suggestion.level }}</span>
-                    </div>
-                </div>
-                <a href="{% url 'dashboard:routine_detail' suggestion.pk %}" class="material-symbols-outlined text-secondary-soft">chevron_right</a>
-            </article>
-        {% endfor %}
-    </div>
-</section>
+<script>
+    window.addEventListener("DOMContentLoaded", () => {
+        const modalElement = document.getElementById("workoutCreateModal");
+        const filterButtons = document.querySelectorAll("[data-category-filter]");
+        const categorySections = document.querySelectorAll("[data-builder-category]");
+        const openButtons = document.querySelectorAll("[data-category-open]");
+
+        const applyCategoryFilter = (categoryId) => {
+            const selected = categoryId || "all";
+            filterButtons.forEach((button) => {
+                button.classList.toggle("active", button.dataset.categoryFilter === selected);
+            });
+            categorySections.forEach((section) => {
+                section.hidden = selected !== "all" && section.dataset.builderCategory !== selected;
+            });
+        };
+
+        filterButtons.forEach((button) => {
+            button.addEventListener("click", () => applyCategoryFilter(button.dataset.categoryFilter));
+        });
+        openButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                modalElement.dataset.pendingCategory = button.dataset.categoryOpen;
+            });
+        });
+        modalElement.addEventListener("shown.bs.modal", () => {
+            applyCategoryFilter(modalElement.dataset.pendingCategory || "all");
+            delete modalElement.dataset.pendingCategory;
+        });
+        applyCategoryFilter("all");
+
+        {% if show_workout_modal %}
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        {% endif %}
+    });
+</script>
 {% endblock %}

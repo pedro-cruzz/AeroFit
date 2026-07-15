@@ -1,0 +1,127 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - Cadastro de Exercicios{% endblock %}
+
+{% block content %}
+<header class="page-heading routine-heading">
+    <div>
+        <span class="eyebrow">Biblioteca</span>
+        <h1>Cadastro de exercicios</h1>
+        <p>Cadastre movimentos, corridas e blocos que os alunos poderao usar nas planilhas.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#exerciseCreateModal">
+            <span class="material-symbols-outlined">add</span>
+            Cadastrar exercicio
+        </button>
+        <a class="btn btn-ghost" href="{% url 'dashboard:dev_profile' %}">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Dev
+        </a>
+    </div>
+</header>
+
+<div class="modal fade" id="exerciseCreateModal" tabindex="-1" aria-labelledby="exerciseCreateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable surface-modal-dialog">
+        <div class="modal-content surface-modal">
+            <div class="modal-header">
+                <div>
+                    <span class="eyebrow">Novo cadastro</span>
+                    <h2 class="modal-title section-title" id="exerciseCreateModalLabel">Cadastrar exercicio</h2>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% if exercise_form.non_field_errors %}
+                        <div class="alert alert-error">{{ exercise_form.non_field_errors|striptags }}</div>
+                    {% endif %}
+                    <div class="form-grid exercise-form-grid">
+                        {% for field in exercise_form %}
+                            <label class="field-group {% if field.field.widget.input_type == 'checkbox' %}check-field{% endif %}">
+                                <span class="mono-label">{{ field.label }}</span>
+                                {{ field }}
+                                {% if field.help_text %}<small class="field-hint">{{ field.help_text }}</small>{% endif %}
+                                {% if field.errors %}<small class="form-error">{{ field.errors|striptags }}</small>{% endif %}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">
+                        <span class="material-symbols-outlined">close</span>
+                        Cancelar
+                    </button>
+                    <button class="btn btn-primary" type="submit">
+                        <span class="material-symbols-outlined">add_task</span>
+                        Salvar exercicio
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="section-title">Exercicios por categoria</h2>
+        <span class="mono-label text-secondary-soft">{{ total_exercises }} cadastrados</span>
+    </div>
+    <div class="category-training-grid">
+        {% for category in categories %}
+            <article class="surface-card category-training-card accent-{{ category.accent }}">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="card-title-sm">{{ category.name }}</h3>
+                    <span class="status-dot">{{ category.total_exercises }}</span>
+                </div>
+                <div class="v-stack">
+                    {% for exercise in category.exercises.all %}
+                        <article class="exercise-row action-row accent-{{ category.accent }} exercise-goal-{{ exercise.focus }}">
+                            <a class="action-row-main" href="{{ exercise.get_absolute_url }}">
+                                <span class="material-symbols-outlined">{{ category.icon }}</span>
+                                <div>
+                                    <strong>{{ exercise.name }}</strong>
+                                    <small>{{ exercise.get_focus_display }} | {{ exercise.default_sets }}x{{ exercise.default_reps }}</small>
+                                </div>
+                            </a>
+                            <div class="item-actions">
+                                <a class="action-button action-button-edit" href="{% url 'dashboard:dev_edit_training' exercise.pk %}" aria-label="Editar {{ exercise.name }}">
+                                    <span class="material-symbols-outlined">edit</span>
+                                    Editar
+                                </a>
+                                <form method="post" action="{% url 'dashboard:dev_delete_training' exercise.pk %}">
+                                    {% csrf_token %}
+                                    <button class="action-button action-button-danger" type="submit" aria-label="Excluir {{ exercise.name }}" onclick="return confirm('Excluir este treino da biblioteca?');">
+                                        <span class="material-symbols-outlined">delete</span>
+                                        Excluir
+                                    </button>
+                                </form>
+                            </div>
+                        </article>
+                    {% empty %}
+                        <div class="surface-empty compact-empty">
+                            <span class="material-symbols-outlined">playlist_add</span>
+                            <p>Nenhum exercicio nesta categoria.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </article>
+        {% empty %}
+            <div class="surface-empty">
+                <span class="material-symbols-outlined">category</span>
+                <p>Nenhuma categoria cadastrada ainda.</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+{% if show_form %}
+    <script>
+        window.addEventListener("DOMContentLoaded", () => {
+            const modal = new bootstrap.Modal(document.getElementById("exerciseCreateModal"));
+            modal.show();
+        });
+    </script>
+{% endif %}
+{% endblock %}

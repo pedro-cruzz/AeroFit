@@ -1,0 +1,91 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - Teste de Treinos{% endblock %}
+
+{% block content %}
+<header class="page-heading routine-heading">
+    <div>
+        <span class="eyebrow">Sandbox Dev</span>
+        <h1>Teste de treinos</h1>
+        <p>Use esta area para validar o fluxo do aluno: montar planilha, editar, executar e excluir.</p>
+    </div>
+    <a class="btn btn-ghost" href="{% url 'dashboard:dev_profile' %}">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Dev
+    </a>
+</header>
+
+<section class="row g-4 mb-4">
+    <div class="col-md-6">
+        <article class="surface-card stat-card h-100">
+            <span class="material-symbols-outlined stat-icon text-primary-symbol">assignment</span>
+            <strong class="stat-number">{{ total_routines }}</strong>
+            <span class="eyebrow">Planilhas de teste</span>
+        </article>
+    </div>
+    <div class="col-md-6">
+        <article class="surface-card stat-card h-100">
+            <span class="material-symbols-outlined stat-icon text-primary-symbol">check_circle</span>
+            <strong class="stat-number">{{ total_sessions }}</strong>
+            <span class="eyebrow">Execucoes salvas</span>
+        </article>
+    </div>
+</section>
+
+<section class="dev-action-grid mb-5">
+    <a class="surface-card dev-action-card" href="{% url 'dashboard:workouts' %}">
+        <span class="material-symbols-outlined">add_task</span>
+        <div>
+            <h2>Montar planilha</h2>
+            <p>Abre a area Treinos no ponto exato onde o aluno monta uma planilha.</p>
+        </div>
+    </a>
+    <a class="surface-card dev-action-card" href="{% url 'dashboard:workouts' %}">
+        <span class="material-symbols-outlined">fitness_center</span>
+        <div>
+            <h2>Ver Treinos</h2>
+            <p>Testa a sidebar Treinos como usuario logado, com editar e excluir.</p>
+        </div>
+    </a>
+    <a class="surface-card dev-action-card" href="{% url 'dashboard:dev_exercise_catalog' %}">
+        <span class="material-symbols-outlined">library_books</span>
+        <div>
+            <h2>Biblioteca</h2>
+            <p>Volta para cadastro dos exercicios que aparecem para o aluno.</p>
+        </div>
+    </a>
+</section>
+
+<section class="surface-card mb-5">
+    <h2 class="section-title mb-4">Planilhas do usuario dev</h2>
+    <div class="v-stack">
+        {% for routine in routines %}
+            <article class="exercise-row action-row">
+                <a class="action-row-main" href="{% url 'dashboard:routine_detail' routine.pk %}">
+                    <span class="material-symbols-outlined">assignment</span>
+                    <div>
+                        <strong>{{ routine.name }}</strong>
+                        <small>{{ routine.type }} | {{ routine.items.count }} exercicios</small>
+                    </div>
+                </a>
+                <div class="item-actions">
+                    <a class="icon-soft" href="{% url 'dashboard:edit_routine' routine.pk %}" aria-label="Editar {{ routine.name }}">
+                        <span class="material-symbols-outlined">edit</span>
+                    </a>
+                    <form method="post" action="{% url 'dashboard:delete_routine' routine.pk %}">
+                        {% csrf_token %}
+                        <button class="icon-danger" type="submit" aria-label="Excluir {{ routine.name }}" onclick="return confirm('Excluir esta planilha de teste?');">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    </form>
+                </div>
+            </article>
+        {% empty %}
+            <div class="surface-empty compact-empty">
+                <span class="material-symbols-outlined">assignment_add</span>
+                <p>Nenhuma planilha de teste criada com este usuario dev.</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

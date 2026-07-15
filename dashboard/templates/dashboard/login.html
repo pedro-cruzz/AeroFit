@@ -1,0 +1,50 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - Login{% endblock %}
+{% block body_class %}login-body{% endblock %}
+
+{% block shell %}
+<main class="login-shell">
+    <section class="login-panel">
+        <div class="login-brand">
+            <img src="{{ profile_image }}" alt="" class="avatar">
+            <span>AeroFit</span>
+        </div>
+        <div>
+            <span class="eyebrow">Acesso seguro</span>
+            <h1>Entre para continuar</h1>
+            <p>Use suas credenciais para acessar treinos, progresso e area Dev.</p>
+        </div>
+
+        {% if messages %}
+            <div class="message-stack">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} mb-0">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" class="login-form" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">{{ form.non_field_errors|striptags }}</div>
+            {% endif %}
+            <label class="field-group">
+                <span class="mono-label">Usuario</span>
+                {{ form.username }}
+                {% if form.username.errors %}<small class="form-error">{{ form.username.errors|striptags }}</small>{% endif %}
+            </label>
+            <label class="field-group">
+                <span class="mono-label">Senha</span>
+                {{ form.password }}
+                {% if form.password.errors %}<small class="form-error">{{ form.password.errors|striptags }}</small>{% endif %}
+            </label>
+            <input type="hidden" name="next" value="{{ next|default:'' }}">
+            <button class="btn btn-primary btn-lg w-100" type="submit">
+                <span class="material-symbols-outlined">lock_open</span>
+                Entrar
+            </button>
+        </form>
+    </section>
+</main>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - Editar {{ routine.name }}{% endblock %}
+
+{% block content %}
+<header class="page-heading routine-heading">
+    <div>
+        <span class="eyebrow">Minha planilha</span>
+        <h1>Editar treino</h1>
+        <p>Ajuste nome, objetivo, series, repeticoes e descanso de cada exercicio.</p>
+    </div>
+    <a class="btn btn-ghost" href="{% url 'dashboard:routine_detail' routine.pk %}">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Voltar
+    </a>
+</header>
+
+<form method="post" class="surface-card mb-5">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+        <div class="alert alert-error">{{ form.non_field_errors|striptags }}</div>
+    {% endif %}
+
+    <section class="form-grid mb-4">
+        <label class="field-group">
+            <span class="mono-label">{{ form.name.label }}</span>
+            {{ form.name }}
+            {% if form.name.errors %}<small class="form-error">{{ form.name.errors|striptags }}</small>{% endif %}
+        </label>
+        <label class="field-group">
+            <span class="mono-label">{{ form.goal.label }}</span>
+            {{ form.goal }}
+            {% if form.goal.errors %}<small class="form-error">{{ form.goal.errors|striptags }}</small>{% endif %}
+        </label>
+    </section>
+
+    <section class="weekday-picker mb-4">
+        <span class="mono-label">{{ form.training_days.label }}</span>
+        <div class="weekday-options">
+            {% for choice in form.training_days %}
+                <label class="weekday-option">
+                    {{ choice.tag }}
+                    <span>{{ choice.choice_label }}</span>
+                </label>
+            {% endfor %}
+        </div>
+        {% if form.training_days.errors %}<small class="form-error">{{ form.training_days.errors|striptags }}</small>{% endif %}
+    </section>
+
+    <div class="v-stack mb-4">
+        {% for row in item_rows %}
+            <article class="edit-exercise-card">
+                <div>
+                    <span class="step-pill">{{ row.item.order|stringformat:"02d" }}</span>
+                </div>
+                <div class="edit-exercise-main">
+                    <strong>{{ row.item.exercise.name }}</strong>
+                    <small>{{ row.item.exercise.category.name }} | {{ row.item.exercise.primary_muscle }}</small>
+                </div>
+                <label class="mini-field">
+                    <span class="mono-label">Series</span>
+                    {{ row.sets_field }}
+                    {% if row.sets_field.errors %}<small class="form-error">{{ row.sets_field.errors|striptags }}</small>{% endif %}
+                </label>
+                <label class="mini-field">
+                    <span class="mono-label">Reps</span>
+                    {{ row.reps_field }}
+                    {% if row.reps_field.errors %}<small class="form-error">{{ row.reps_field.errors|striptags }}</small>{% endif %}
+                </label>
+                <label class="mini-field">
+                    <span class="mono-label">Descanso</span>
+                    {{ row.rest_field }}
+                    {% if row.rest_field.errors %}<small class="form-error">{{ row.rest_field.errors|striptags }}</small>{% endif %}
+                </label>
+            </article>
+        {% endfor %}
+    </div>
+    <button class="btn btn-primary btn-lg w-100" type="submit">
+        <span class="material-symbols-outlined">save</span>
+        Salvar alteracoes
+    </button>
+</form>
+{% endblock %}

@@ -7,8 +7,11 @@ from .models import (
     Exercise,
     ExerciseCategory,
     LeaderboardEntry,
+    LoginAttempt,
     PhysicalAttribute,
     ProgressEntry,
+    UserActivityLog,
+    UserXpEvent,
     WeeklyPlan,
     WorkoutExercise,
     WorkoutRoutine,
@@ -25,14 +28,14 @@ class WorkoutExerciseInline(admin.TabularInline):
 class WorkoutSessionExerciseInline(admin.TabularInline):
     model = WorkoutSessionExercise
     extra = 0
-    readonly_fields = ("workout_exercise", "completed", "load_kg", "sets_done", "reps_done")
+    readonly_fields = ("workout_exercise", "completed", "load_kg", "sets_done", "reps_done", "rpe")
     can_delete = False
 
 
 @admin.register(WorkoutRoutine)
 class WorkoutRoutineAdmin(admin.ModelAdmin):
-    list_display = ("name", "goal", "duration_minutes", "calories", "is_template")
-    list_filter = ("goal", "is_template")
+    list_display = ("name", "owner", "goal", "duration_minutes", "calories", "is_template")
+    list_filter = ("goal", "is_template", "owner")
     search_fields = ("name", "description")
     inlines = [WorkoutExerciseInline]
 
@@ -53,6 +56,29 @@ admin.site.register(ProgressEntry)
 admin.site.register(Achievement)
 admin.site.register(LeaderboardEntry)
 admin.site.register(Challenge)
+
+
+@admin.register(LoginAttempt)
+class LoginAttemptAdmin(admin.ModelAdmin):
+    list_display = ("identity_hash", "attempts", "locked_until", "last_attempt_at")
+    readonly_fields = ("identity_hash", "attempts", "locked_until", "last_attempt_at")
+    search_fields = ("identity_hash",)
+
+
+@admin.register(UserActivityLog)
+class UserActivityLogAdmin(admin.ModelAdmin):
+    list_display = ("user", "method", "path", "status_code", "created_at")
+    list_filter = ("method", "status_code", "created_at")
+    readonly_fields = ("user", "path", "method", "status_code", "ip_hash", "user_agent", "created_at")
+    search_fields = ("user__username", "path", "user_agent")
+
+
+@admin.register(UserXpEvent)
+class UserXpEventAdmin(admin.ModelAdmin):
+    list_display = ("user", "total_xp", "strength_xp", "endurance_xp", "base_xp", "created_at")
+    list_filter = ("created_at",)
+    readonly_fields = ("user", "session", "total_xp", "strength_xp", "endurance_xp", "base_xp", "detail", "created_at")
+    search_fields = ("user__username", "session__routine__name")
 
 
 @admin.register(WorkoutSession)

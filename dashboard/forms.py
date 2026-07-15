@@ -1,19 +1,95 @@
+from hashlib import sha256
+
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.utils import timezone
 from django.utils.text import slugify
 
-from .models import Exercise
+from .models import Exercise, LoginAttempt, WorkoutRoutine
 
 
 User = get_user_model()
+
+
+class SecureAuthenticationForm(AuthenticationForm):
+    MAX_ATTEMPTS = 5
+    LOCKOUT_SECONDS = 15 * 60
+
+    error_messages = {
+        "invalid_login": "Credenciais invalidas. Verifique usuario e senha.",
+        "inactive": "Esta conta esta inativa.",
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        super().__init__(request, *args, **kwargs)
+        self.fields["username"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "autocomplete": "username",
+                "autocapitalize": "none",
+                "spellcheck": "false",
+                "placeholder": "seu usuario",
+            }
+        )
+        self.fields["password"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "autocomplete": "current-password",
+                "placeholder": "sua senha",
+            }
+        )
+
+    def clean(self):
+        username = self.cleaned_data.get("username", "").strip().lower()
+
+        if username and self._is_locked(username):
+            raise forms.ValidationError(
+                "Muitas tentativas falhas. Aguarde alguns minutos e tente novamente.",
+                code="locked",
+            )
+
+        try:
+            cleaned_data = super().clean()
+        except forms.ValidationError as error:
+            if username:
+                self._register_failure(username)
+            raise error
+
+        if username:
+            self._clear_failures(username)
+        return cleaned_data
+
+    def _client_ip(self):
+        if not self.request:
+            return "unknown"
+        return self.request.META.get("REMOTE_ADDR", "unknown")
+
+    def _identity_hash(self, username):
+        identity = f"{self._client_ip()}:{username}".encode()
+        return sha256(identity).hexdigest()
+
+    def _is_locked(self, username):
+        attempt = LoginAttempt.objects.filter(identity_hash=self._identity_hash(username)).first()
+        return bool(attempt and attempt.locked_until and attempt.locked_until > timezone.now())
+
+    def _register_failure(self, username):
+        attempt, _ = LoginAttempt.objects.get_or_create(identity_hash=self._identity_hash(username))
+        attempt.attempts += 1
+
+        if attempt.attempts >= self.MAX_ATTEMPTS:
+            attempt.locked_until = timezone.now() + timezone.timedelta(seconds=self.LOCKOUT_SECONDS)
+        attempt.save(update_fields=["attempts", "locked_until", "last_attempt_at"])
+
+    def _clear_failures(self, username):
+        LoginAttempt.objects.filter(identity_hash=self._identity_hash(username)).delete()
 
 
 class DevUserCreationForm(UserCreationForm):
     first_name = forms.CharField(label="Nome", max_length=150, required=False)
     last_name = forms.CharField(label="Sobrenome", max_length=150, required=False)
     email = forms.EmailField(label="Email", required=False)
-    is_staff = forms.BooleanField(label="Perfil dev", required=False)
+    is_staff = forms.BooleanField(label="Conceder acesso Dev", required=False)
 
     class Meta(UserCreationForm.Meta):
         model = User
@@ -28,6 +104,65 @@ class DevUserCreationForm(UserCreationForm):
                 field.widget.attrs.update({"class": "form-control"})
             if name in {"password1", "password2"}:
                 field.help_text = ""
+
+
+class RoutineEditForm(forms.ModelForm):
+    training_days = forms.MultipleChoiceField(
+        label="Dias do treino",
+        choices=WorkoutRoutine.WEEKDAY_CHOICES,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    class Meta:
+        model = WorkoutRoutine
+        fields = ("name", "goal", "training_days")
+        labels = {
+            "name": "Nome da planilha",
+            "goal": "Objetivo",
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.routine = kwargs.get("instance")
+        super().__init__(*args, **kwargs)
+        self.fields["name"].widget.attrs.update({"class": "form-control"})
+        self.fields["goal"].widget.attrs.update({"class": "form-select"})
+        self.fields["training_days"].initial = self.routine.training_days if self.routine else []
+        self.fields["training_days"].widget.attrs.update({"class": "form-check-input precision-check"})
+
+        if not self.routine:
+            return
+
+        for item in self.routine.items.select_related("exercise"):
+            self.fields[f"sets_{item.id}"] = forms.IntegerField(
+                label=f"Series - {item.exercise.name}",
+                min_value=1,
+                max_value=20,
+                initial=item.sets,
+                widget=forms.NumberInput(attrs={"class": "form-control"}),
+            )
+            self.fields[f"reps_{item.id}"] = forms.CharField(
+                label=f"Reps - {item.exercise.name}",
+                max_length=40,
+                initial=item.reps,
+                widget=forms.TextInput(attrs={"class": "form-control"}),
+            )
+            self.fields[f"rest_{item.id}"] = forms.IntegerField(
+                label=f"Descanso - {item.exercise.name}",
+                min_value=0,
+                max_value=600,
+                initial=item.rest_seconds,
+                widget=forms.NumberInput(attrs={"class": "form-control"}),
+            )
+
+    def save(self, commit=True):
+        routine = super().save(commit=commit)
+        for item in routine.items.all():
+            item.sets = self.cleaned_data[f"sets_{item.id}"]
+            item.reps = self.cleaned_data[f"reps_{item.id}"].strip()
+            item.rest_seconds = self.cleaned_data[f"rest_{item.id}"]
+            item.save(update_fields=["sets", "reps", "rest_seconds"])
+        return routine
 
 
 class ExerciseCreationForm(forms.ModelForm):
@@ -74,6 +209,9 @@ class ExerciseCreationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields["instructions_text"].initial = "\n".join(self.instance.instructions or [])
+
         for field in self.fields.values():
             if isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs.update({"class": "form-check-input precision-check"})
@@ -87,7 +225,8 @@ class ExerciseCreationForm(forms.ModelForm):
         base_slug = slugify(exercise.name)
         candidate_slug = base_slug
         suffix = 2
-        while Exercise.objects.filter(slug=candidate_slug).exists():
+        existing = Exercise.objects.exclude(pk=exercise.pk) if exercise.pk else Exercise.objects.all()
+        while existing.filter(slug=candidate_slug).exists():
             candidate_slug = f"{base_slug}-{suffix}"
             suffix += 1
 
