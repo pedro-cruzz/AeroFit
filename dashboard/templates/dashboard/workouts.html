@@ -1,0 +1,88 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - Biblioteca de Treinos{% endblock %}
+
+{% block content %}
+<section class="mb-4">
+    <div class="search-box">
+        <span class="material-symbols-outlined">search</span>
+        <input class="form-control" type="search" placeholder="Buscar exercícios ou rotinas">
+    </div>
+</section>
+
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+        <h1 class="section-title">Minhas rotinas</h1>
+        <a class="btn btn-primary" href="{% url 'dashboard:workout_builder' %}">
+            <span class="material-symbols-outlined">add</span>
+            Montar treino
+        </a>
+    </div>
+    <div class="scroll-row">
+        {% for routine in routines %}
+            <article class="routine-card-shell">
+                <a class="routine-card" href="{% url 'dashboard:routine_detail' routine.pk %}" style="background-image: url('{{ routine.image_url }}')">
+                    <div class="routine-overlay"></div>
+                    <div class="routine-content">
+                        <span class="eyebrow text-primary-symbol">{{ routine.type }}</span>
+                        <h2>{{ routine.name }}</h2>
+                        <p>
+                            <span class="material-symbols-outlined">schedule</span>{{ routine.duration_minutes }} min
+                            <span class="material-symbols-outlined">bolt</span>{{ routine.calories }} kcal
+                        </p>
+                    </div>
+                </a>
+                <form method="post" action="{% url 'dashboard:delete_routine' routine.pk %}" class="routine-delete-form">
+                    {% csrf_token %}
+                    <button class="icon-danger" type="submit" aria-label="Excluir {{ routine.name }}" onclick="return confirm('Excluir este treino e todo o historico dele?');">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
+                </form>
+            </article>
+        {% empty %}
+            <div class="surface-empty w-100">
+                <span class="material-symbols-outlined">fitness_center</span>
+                <p>Nenhum treino salvo ainda. Monte seu primeiro treino para comecar.</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="mb-5">
+    <h2 class="section-title mb-3">Explorar categorias</h2>
+    <div class="row g-3">
+        {% for category in categories %}
+            <div class="col-6 col-lg-3">
+                <article class="category-card accent-{{ category.accent }}">
+                    <span class="material-symbols-outlined">{{ category.icon }}</span>
+                    <strong>{{ category.name }}</strong>
+                </article>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="mb-5">
+    <h2 class="section-title mb-3">Sugerido para você</h2>
+    <div class="v-stack">
+        {% for suggestion in suggestions %}
+            <article class="surface-card compact-row">
+                <div class="suggestion-thumb">
+                    <span class="material-symbols-outlined">fitness_center</span>
+                </div>
+                <div class="flex-grow-1">
+                    <h3>{{ suggestion.name }}</h3>
+                    <p>{{ suggestion.description }}</p>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="precision-progress flex-grow-1">
+                            <span class="bar-indigo" style="width: {{ suggestion.progress }}%"></span>
+                        </div>
+                        <span class="mono-label text-secondary-soft">{{ suggestion.level }}</span>
+                    </div>
+                </div>
+                <a href="{% url 'dashboard:routine_detail' suggestion.pk %}" class="material-symbols-outlined text-secondary-soft">chevron_right</a>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

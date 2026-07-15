@@ -1,0 +1,86 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - Elite{% endblock %}
+
+{% block content %}
+<section class="row g-4 mb-5">
+    <div class="col-lg-8">
+        <article class="surface-card league-card">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <span class="eyebrow">Liga atual</span>
+                    <h1><span class="material-symbols-outlined filled text-primary-symbol">workspace_premium</span> Liga de Diamante</h1>
+                </div>
+                <div class="text-end">
+                    <span class="eyebrow">Reset em</span>
+                    <strong class="timer" id="leagueCountdown">02:14:45</strong>
+                </div>
+            </div>
+            <p class="mb-0 text-secondary-soft">Você está no <strong class="text-primary-symbol">Top 5%</strong> da liga.</p>
+        </article>
+    </div>
+    <div class="col-lg-4">
+        <article class="surface-card h-100 d-flex flex-column justify-content-between">
+            <span class="eyebrow">Seu status</span>
+            <div class="v-stack my-3">
+                <div class="d-flex justify-content-between"><span>Posição global</span><strong>#{{ profile.global_rank }}</strong></div>
+                <div class="d-flex justify-content-between"><span>Pontos Elite</span><strong class="text-primary-symbol">{{ profile.elite_points }}</strong></div>
+            </div>
+            <button class="btn btn-light">Ver recompensas</button>
+        </article>
+    </div>
+</section>
+
+<section class="mb-5">
+    <div class="rank-tabs mb-3">
+        <button class="is-active">Global</button>
+        <button>Amigos</button>
+        <button>Local</button>
+    </div>
+    <div class="v-stack">
+        {% for person in ranking %}
+            <article class="rank-row {% if person.is_current_user %}is-current{% endif %}">
+                <div class="d-flex align-items-center gap-3">
+                    <strong class="rank-number rank-{{ person.medal }}">{{ person.rank }}</strong>
+                    <div class="rank-avatar">{{ person.name|slice:":1" }}</div>
+                    <div>
+                        <h2>{{ person.name }}</h2>
+                        <p>{{ person.role }} | {{ person.city }}</p>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <strong>{{ person.points }} <small>pts</small></strong>
+                    <span class="material-symbols-outlined trend">trending_up</span>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="section-title">Desafios da comunidade</h2>
+        <a class="mono-link" href="#">Ver todos</a>
+    </div>
+    <div class="row g-3">
+        {% for challenge in challenges %}
+            <div class="col-lg-6">
+                <article class="surface-card">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="history-icon material-symbols-outlined">{{ challenge.icon }}</span>
+                            <div>
+                                <h3 class="card-title-sm">{{ challenge.name }}</h3>
+                                <p class="text-secondary-soft mb-0">{{ challenge.days_left }} dias restantes</p>
+                            </div>
+                        </div>
+                        <strong class="mono-label text-primary-symbol">{{ challenge.progress }}%</strong>
+                    </div>
+                    <div class="precision-progress mb-2"><span class="bar-indigo" style="width: {{ challenge.progress }}%"></span></div>
+                    <p class="text-secondary-soft mb-0">{{ challenge.detail }}</p>
+                </article>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - Progresso{% endblock %}
+
+{% block content %}
+<header class="page-heading">
+    <h1>Progresso</h1>
+    <p>Sua evolução técnica e fisiológica.</p>
+</header>
+
+<section class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <article class="surface-card level-card">
+            <span class="eyebrow">Nível do atleta</span>
+            <div class="d-flex align-items-end gap-2 my-2">
+                <strong class="display-stat">{{ profile.level }}</strong>
+                <span class="text-secondary-soft mb-2">Elite Performance</span>
+            </div>
+            <div class="d-flex justify-content-between mono-label mb-2">
+                <span>Total XP: {{ profile.total_xp }}</span>
+                <span class="text-primary-symbol">Próximo nível: {{ profile.next_level_xp }}</span>
+            </div>
+            <div class="precision-progress"><span class="bar-cyan" style="width: {{ profile.xp_progress }}%"></span></div>
+            <span class="material-symbols-outlined level-bg filled">workspace_premium</span>
+        </article>
+    </div>
+    <div class="col-lg-4">
+        <article class="surface-card stat-card h-100">
+            <span class="material-symbols-outlined stat-icon filled text-primary-symbol">bolt</span>
+            <strong class="stat-number">{{ profile.streak_days }}</strong>
+            <span class="eyebrow">Streak de dias</span>
+        </article>
+    </div>
+</section>
+
+<section class="row g-4 mb-5">
+    <div class="col-lg-6">
+        <article class="surface-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="eyebrow">Força (30d)</h2>
+                <strong class="metric-up cyan">+14%</strong>
+            </div>
+            <div class="bar-chart">
+                <span style="height: 40%"></span><span style="height: 45%"></span><span style="height: 42%"></span>
+                <span style="height: 55%"></span><span style="height: 60%"></span><span class="is-hot" style="height: 75%"></span>
+                <span class="is-hot" style="height: 85%"></span>
+            </div>
+        </article>
+    </div>
+    <div class="col-lg-6">
+        <article class="surface-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="eyebrow">Resistência (30d)</h2>
+                <strong class="metric-up lime">+8%</strong>
+            </div>
+            <svg class="line-chart" viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M0,80 Q25,75 50,60 T100,40 T150,45 T200,20" fill="none" stroke="#ccff00" stroke-width="2"></path>
+                <path d="M0,80 Q25,75 50,60 T100,40 T150,45 T200,20 V100 H0 Z" fill="#ccff00" opacity="0.14"></path>
+            </svg>
+        </article>
+    </div>
+</section>
+
+<section class="mb-5">
+    <h2 class="eyebrow mb-3">Conquistas recentes</h2>
+    <div class="scroll-row">
+        {% for achievement in achievements %}
+            <article class="achievement achievement-{{ achievement.accent }}">
+                <span class="material-symbols-outlined {% if achievement.accent != 'muted' %}filled{% endif %}">{{ achievement.icon }}</span>
+                <strong>{{ achievement.label }}</strong>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="mb-5">
+    <h2 class="eyebrow mb-3">Histórico de treinos</h2>
+    <div class="v-stack">
+        {% for item in history %}
+            <article class="surface-card history-row">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="history-icon material-symbols-outlined">{{ item.icon }}</span>
+                    <div>
+                        <h3>{{ item.name }}</h3>
+                        <p>{{ item.date_label }} | {{ item.duration_minutes }} min</p>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <strong>+{{ item.xp }} XP</strong>
+                    <span>{{ item.tag }}</span>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

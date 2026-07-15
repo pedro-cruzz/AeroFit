@@ -1,0 +1,134 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - {{ routine.name }}{% endblock %}
+
+{% block content %}
+<header class="page-heading routine-heading">
+    <div>
+        <span class="eyebrow">{{ routine.type }} | {{ routine.level }}</span>
+        <h1>{{ routine.name }}</h1>
+        <p>{{ routine.description }}</p>
+    </div>
+    <form method="post" action="{% url 'dashboard:delete_routine' routine.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-danger-soft" type="submit" onclick="return confirm('Excluir este treino e todo o historico dele?');">
+            <span class="material-symbols-outlined">delete</span>
+            Excluir treino
+        </button>
+    </form>
+</header>
+
+<section class="row g-4 mb-4">
+    <div class="col-md-4">
+        <article class="surface-card stat-card h-100">
+            <span class="material-symbols-outlined stat-icon text-primary-symbol">schedule</span>
+            <strong class="stat-number">{{ routine.duration_minutes }}</strong>
+            <span class="eyebrow">Minutos</span>
+        </article>
+    </div>
+    <div class="col-md-4">
+        <article class="surface-card stat-card h-100">
+            <span class="material-symbols-outlined stat-icon text-primary-symbol">bolt</span>
+            <strong class="stat-number">{{ routine.calories }}</strong>
+            <span class="eyebrow">Kcal</span>
+        </article>
+    </div>
+    <div class="col-md-4">
+        <article class="surface-card stat-card h-100">
+            <span class="material-symbols-outlined stat-icon text-primary-symbol">format_list_numbered</span>
+            <strong class="stat-number">{{ routine.items.count }}</strong>
+            <span class="eyebrow">Exercicios</span>
+        </article>
+    </div>
+</section>
+
+<section class="surface-card mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="section-title">Executar treino</h2>
+        <a class="btn btn-ghost" href="{% url 'dashboard:workout_builder' %}">
+            <span class="material-symbols-outlined">add</span>
+            Novo treino
+        </a>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <div class="list-group list-group-flush workout-list">
+            {% for item in routine.items.all %}
+                <div class="list-group-item workout-item execution-item">
+                    <span class="d-flex align-items-center gap-3">
+                        <span class="step-pill">{{ item.order|stringformat:"02d" }}</span>
+                        <span>
+                            <strong>{{ item.exercise.name }}</strong>
+                            <small>{{ item.meta }} | descanso {{ item.rest_seconds }}s</small>
+                        </span>
+                    </span>
+                    <span class="execution-controls">
+                        <label class="load-field">
+                            <span class="mono-label">Carga kg</span>
+                            <input class="form-control form-control-sm" type="number" step="0.5" min="0" name="load_{{ item.id }}" placeholder="0">
+                        </label>
+                        <label class="complete-check">
+                            <input class="form-check-input precision-check" type="checkbox" name="completed_{{ item.id }}" checked>
+                            <span>Concluido</span>
+                        </label>
+                        <a href="{{ item.exercise.get_absolute_url }}" class="btn btn-sm btn-ghost">
+                            <span class="material-symbols-outlined">play_circle</span>
+                            Execucao
+                        </a>
+                        <button
+                            class="btn btn-sm btn-danger-soft"
+                            type="submit"
+                            formaction="{% url 'dashboard:delete_workout_exercise' routine.pk item.pk %}"
+                            formmethod="post"
+                            onclick="return confirm('Remover {{ item.exercise.name }} deste treino?');"
+                        >
+                            <span class="material-symbols-outlined">delete</span>
+                            Remover
+                        </button>
+                    </span>
+                </div>
+            {% empty %}
+                <div class="surface-empty">
+                    <span class="material-symbols-outlined">playlist_remove</span>
+                    <p>Este treino ainda nao tem exercicios.</p>
+                </div>
+            {% endfor %}
+        </div>
+        <label class="field-group mt-4">
+            <span class="mono-label">Observacoes do treino</span>
+            <input class="form-control" name="notes" placeholder="Ex: boa energia, aumentar carga no supino">
+        </label>
+        <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">
+            <span class="material-symbols-outlined filled">check_circle</span>
+            Concluir treino e salvar cargas
+        </button>
+    </form>
+</section>
+
+<section class="surface-card mb-5">
+    <h2 class="section-title mb-4">Historico de cargas</h2>
+    <div class="v-stack">
+        {% for session in sessions %}
+            <article class="session-card">
+                <div>
+                    <strong>{{ session.completed_at|date:"d/m/Y H:i" }}</strong>
+                    {% if session.notes %}<p>{{ session.notes }}</p>{% endif %}
+                </div>
+                <div class="session-loads">
+                    {% for log in session.exercise_logs.all %}
+                        <span>
+                            {{ log.workout_exercise.exercise.name }}:
+                            {% if log.load_kg %}{{ log.load_kg }} kg{% else %}sem carga{% endif %}
+                        </span>
+                    {% endfor %}
+                </div>
+            </article>
+        {% empty %}
+            <div class="surface-empty">
+                <span class="material-symbols-outlined">monitoring</span>
+                <p>Nenhuma conclusao registrada ainda. Conclua o treino para salvar suas cargas.</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}AeroFit - Montar Treino{% endblock %}
+
+{% block content %}
+<header class="page-heading">
+    <h1>Montar treino</h1>
+    <p>Escolha o foco, os exercicios, a quantidade de series e repeticoes. Se nao selecionar nenhum, o AeroFit cria uma rotina automatica pelo objetivo.</p>
+</header>
+
+<form method="post" class="builder-grid mb-5">
+    {% csrf_token %}
+    <section class="surface-card">
+        <h2 class="section-title mb-3">Configuracao</h2>
+        <div class="v-stack">
+            <label class="field-group">
+                <span class="mono-label">Nome do treino</span>
+                <input class="form-control" name="name" placeholder="Ex: Superior pesado">
+            </label>
+            <label class="field-group">
+                <span class="mono-label">Objetivo</span>
+                <select class="form-select" name="goal">
+                    {% for value, label in goals %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="btn btn-primary btn-lg" type="submit">
+                <span class="material-symbols-outlined">auto_awesome</span>
+                Montar e salvar
+            </button>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="section-title">Exercicios</h2>
+            <span class="mono-label text-secondary-soft">Opcional</span>
+        </div>
+        <div class="exercise-picker">
+            {% for exercise in exercises %}
+                <label class="exercise-option">
+                    <span class="exercise-option-main">
+                        <input class="form-check-input precision-check" type="checkbox" name="exercises" value="{{ exercise.id }}">
+                        <span>
+                            <strong>{{ exercise.name }}</strong>
+                            <small>{{ exercise.category.name }} | {{ exercise.primary_muscle }}</small>
+                        </span>
+                    </span>
+                    <span class="exercise-prescription">
+                        <span class="mini-field">
+                            <span class="mono-label">Series</span>
+                            <input class="form-control form-control-sm" type="number" min="1" max="12" name="sets_{{ exercise.id }}" value="{{ exercise.default_sets }}">
+                        </span>
+                        <span class="mini-field">
+                            <span class="mono-label">Reps</span>
+                            <input class="form-control form-control-sm" name="reps_{{ exercise.id }}" value="{{ exercise.default_reps }}">
+                        </span>
+                    </span>
+                </label>
+            {% endfor %}
+        </div>
+    </section>
+</form>
+{% endblock %}
