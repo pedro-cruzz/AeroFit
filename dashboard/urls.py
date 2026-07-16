@@ -8,6 +8,7 @@ app_name = "dashboard"
 
 urlpatterns = [
     path("", views.SecureLoginView.as_view(), name="login"),
+    path("criar-conta/", views.signup, name="signup"),
     path("sair/", LogoutView.as_view(next_page="dashboard:login"), name="logout"),
     path("dashboard/", views.dashboard, name="home"),
     path("treinos/", views.workouts, name="workouts"),

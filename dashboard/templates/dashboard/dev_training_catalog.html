@@ -14,10 +14,12 @@
             <span class="material-symbols-outlined">add</span>
             Cadastrar exercicio
         </button>
-        <a class="btn btn-ghost" href="{% url 'dashboard:dev_profile' %}">
-            <span class="material-symbols-outlined">arrow_back</span>
-            Dev
-        </a>
+        {% if can_access_dev %}
+            <a class="btn btn-ghost" href="{% url 'dashboard:dev_profile' %}">
+                <span class="material-symbols-outlined">arrow_back</span>
+                Dev
+            </a>
+        {% endif %}
     </div>
 </header>
 
@@ -85,19 +87,21 @@
                                     <small>{{ exercise.get_focus_display }} | {{ exercise.default_sets }}x{{ exercise.default_reps }}</small>
                                 </div>
                             </a>
-                            <div class="item-actions">
-                                <a class="action-button action-button-edit" href="{% url 'dashboard:dev_edit_training' exercise.pk %}" aria-label="Editar {{ exercise.name }}">
-                                    <span class="material-symbols-outlined">edit</span>
-                                    Editar
-                                </a>
-                                <form method="post" action="{% url 'dashboard:dev_delete_training' exercise.pk %}">
-                                    {% csrf_token %}
-                                    <button class="action-button action-button-danger" type="submit" aria-label="Excluir {{ exercise.name }}" onclick="return confirm('Excluir este treino da biblioteca?');">
-                                        <span class="material-symbols-outlined">delete</span>
-                                        Excluir
-                                    </button>
-                                </form>
-                            </div>
+                            {% if request.user.is_staff or exercise.created_by_id == request.user.id %}
+                                <div class="item-actions">
+                                    <a class="action-button action-button-edit" href="{% url 'dashboard:dev_edit_training' exercise.pk %}" aria-label="Editar {{ exercise.name }}">
+                                        <span class="material-symbols-outlined">edit</span>
+                                        Editar
+                                    </a>
+                                    <form method="post" action="{% url 'dashboard:dev_delete_training' exercise.pk %}">
+                                        {% csrf_token %}
+                                        <button class="action-button action-button-danger" type="submit" aria-label="Excluir {{ exercise.name }}" onclick="return confirm('Excluir este treino da biblioteca?');">
+                                            <span class="material-symbols-outlined">delete</span>
+                                            Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endif %}
                         </article>
                     {% empty %}
                         <div class="surface-empty compact-empty">

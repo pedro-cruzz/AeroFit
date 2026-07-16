@@ -5,46 +5,90 @@
 
 {% block shell %}
 <main class="login-shell">
-    <section class="login-panel">
-        <div class="login-brand">
-            <img src="{{ profile_image }}" alt="" class="avatar">
-            <span>AeroFit</span>
-        </div>
-        <div>
-            <span class="eyebrow">Acesso seguro</span>
-            <h1>Entre para continuar</h1>
-            <p>Use suas credenciais para acessar treinos, progresso e area Dev.</p>
-        </div>
-
-        {% if messages %}
-            <div class="message-stack">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }} mb-0">{{ message }}</div>
-                {% endfor %}
+    <section class="auth-layout">
+        <aside class="auth-showcase" aria-label="AeroFit">
+            <div class="auth-showcase-media">
+                <img src="{{ auth_hero_image }}" alt="" class="auth-showcase-image">
+                <div class="auth-showcase-shade"></div>
+                <div class="auth-showcase-content">
+                    <span class="eyebrow">AeroFit Beta</span>
+                    <h2>Treino, progresso e disciplina no mesmo ritmo.</h2>
+                    <div class="auth-score-row">
+                        <span>Level 18</span>
+                        <strong>45.820 XP</strong>
+                    </div>
+                </div>
             </div>
-        {% endif %}
+            <div class="auth-metric-grid">
+                <div class="auth-metric">
+                    <span class="material-symbols-outlined filled">local_fire_department</span>
+                    <strong>12</strong>
+                    <small>dias ativos</small>
+                </div>
+                <div class="auth-metric">
+                    <span class="material-symbols-outlined filled">fitness_center</span>
+                    <strong>3</strong>
+                    <small>planilhas</small>
+                </div>
+                <div class="auth-metric">
+                    <span class="material-symbols-outlined filled">workspace_premium</span>
+                    <strong>Top 5%</strong>
+                    <small>elite</small>
+                </div>
+            </div>
+        </aside>
 
-        <form method="post" class="login-form" novalidate>
-            {% csrf_token %}
-            {% if form.non_field_errors %}
-                <div class="alert alert-error">{{ form.non_field_errors|striptags }}</div>
+        <section class="login-panel">
+            <div class="login-brand">
+                <img src="{{ profile_image }}" alt="" class="avatar">
+                <span>AeroFit</span>
+            </div>
+            <div>
+                <span class="eyebrow">Acesso seguro</span>
+                <h1>Entre na sua conta</h1>
+                <p>Continue de onde parou e registre o proximo treino.</p>
+            </div>
+
+            {% if messages %}
+                <div class="message-stack">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }} mb-0">{{ message }}</div>
+                    {% endfor %}
+                </div>
             {% endif %}
-            <label class="field-group">
-                <span class="mono-label">Usuario</span>
-                {{ form.username }}
-                {% if form.username.errors %}<small class="form-error">{{ form.username.errors|striptags }}</small>{% endif %}
-            </label>
-            <label class="field-group">
-                <span class="mono-label">Senha</span>
-                {{ form.password }}
-                {% if form.password.errors %}<small class="form-error">{{ form.password.errors|striptags }}</small>{% endif %}
-            </label>
-            <input type="hidden" name="next" value="{{ next|default:'' }}">
-            <button class="btn btn-primary btn-lg w-100" type="submit">
-                <span class="material-symbols-outlined">lock_open</span>
-                Entrar
-            </button>
-        </form>
+
+            <form method="post" class="login-form" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-error">{{ form.non_field_errors|striptags }}</div>
+                {% endif %}
+                <label class="field-group auth-field">
+                    <span class="mono-label">Usuario</span>
+                    <span class="auth-field-control">
+                        <span class="material-symbols-outlined">person</span>
+                        {{ form.username }}
+                    </span>
+                    {% if form.username.errors %}<small class="form-error">{{ form.username.errors|striptags }}</small>{% endif %}
+                </label>
+                <label class="field-group auth-field">
+                    <span class="mono-label">Senha</span>
+                    <span class="auth-field-control">
+                        <span class="material-symbols-outlined">lock</span>
+                        {{ form.password }}
+                    </span>
+                    {% if form.password.errors %}<small class="form-error">{{ form.password.errors|striptags }}</small>{% endif %}
+                </label>
+                <input type="hidden" name="next" value="{{ next|default:'' }}">
+                <button class="btn btn-primary btn-lg w-100 auth-submit" type="submit">
+                    <span class="material-symbols-outlined">lock_open</span>
+                    Entrar
+                </button>
+            </form>
+            <p class="auth-switch">
+                Novo por aqui?
+                <a href="{% url 'dashboard:signup' %}">Criar conta</a>
+            </p>
+        </section>
     </section>
 </main>
 {% endblock %}

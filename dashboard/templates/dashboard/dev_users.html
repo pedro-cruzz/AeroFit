@@ -107,7 +107,7 @@
                             <span>{% if user.get_full_name %}{{ user.get_full_name }}{% else %}Sem nome completo{% endif %}</span>
                         </td>
                         <td>{{ user.email|default:"-" }}</td>
-                        <td>{% if user.is_staff %}Dev{% else %}Aluno{% endif %}</td>
+                        <td>{% if user.is_staff %}Dev{% elif user.id in trainer_user_ids %}Personal{% else %}Aluno{% endif %}</td>
                         <td>
                             {% if user.id in active_user_ids %}
                                 <span class="status-dot is-online">Usando</span>

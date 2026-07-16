@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
@@ -24,6 +25,7 @@ from .models import (
 
 
 User = get_user_model()
+TRAINER_GROUP_NAME = "Personal"
 
 
 class AuthenticationSecurityTests(TestCase):
@@ -46,6 +48,67 @@ class AuthenticationSecurityTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], reverse("dashboard:home"))
+
+    def test_login_page_links_to_public_signup(self):
+        response = self.client.get(reverse("dashboard:login"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("dashboard:signup"))
+        self.assertContains(response, "Criar conta")
+
+    def test_public_signup_creates_user_and_logs_in(self):
+        response = self.client.post(
+            reverse("dashboard:signup"),
+            {
+                "username": "new-athlete",
+                "first_name": "New",
+                "email": "new@example.com",
+                "account_type": "student",
+                "password1": "AeroFit!2026",
+                "password2": "AeroFit!2026",
+            },
+        )
+
+        user = User.objects.get(username="new-athlete")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("dashboard:home"))
+        self.assertEqual(self.client.session.get("_auth_user_id"), str(user.pk))
+        self.assertEqual(user.first_name, "New")
+        self.assertEqual(user.email, "new@example.com")
+        self.assertFalse(user.is_staff)
+
+    def test_public_signup_can_create_trainer_profile(self):
+        response = self.client.post(
+            reverse("dashboard:signup"),
+            {
+                "username": "coach",
+                "first_name": "Coach",
+                "email": "coach@example.com",
+                "account_type": "trainer",
+                "password1": "AeroFit!2026",
+                "password2": "AeroFit!2026",
+            },
+        )
+
+        user = User.objects.get(username="coach")
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(user.is_staff)
+        self.assertTrue(user.groups.filter(name=TRAINER_GROUP_NAME).exists())
+
+    def test_public_signup_rejects_invalid_data(self):
+        response = self.client.post(
+            reverse("dashboard:signup"),
+            {
+                "username": "bad-user",
+                "account_type": "student",
+                "password1": "short",
+                "password2": "different",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(username="bad-user").exists())
+        self.assertContains(response, "Revise os dados para criar sua conta.")
 
     def test_dev_area_requires_staff_user(self):
         self.client.login(username=self.user.username, password=self.password)
@@ -326,6 +389,8 @@ class DevTrainingActionTests(TestCase):
     def setUp(self):
         self.password = "AeroFit!2026"
         self.staff = User.objects.create_user(username="dev-training", password=self.password, is_staff=True)
+        self.trainer = User.objects.create_user(username="trainer", password=self.password)
+        Group.objects.get_or_create(name=TRAINER_GROUP_NAME)[0].user_set.add(self.trainer)
         self.category = ExerciseCategory.objects.create(name="Mobilidade", icon="self_improvement", accent="violet")
         self.exercise = Exercise.objects.create(
             name="Mobilidade base",
@@ -381,6 +446,62 @@ class DevTrainingActionTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Exercise.objects.filter(pk=self.exercise.pk).exists())
 
+    def test_trainer_can_access_exercise_catalog_without_dev_area(self):
+        self.client.login(username=self.trainer.username, password=self.password)
+
+        catalog_response = self.client.get(reverse("dashboard:dev_exercise_catalog"))
+        dev_response = self.client.get(reverse("dashboard:dev_profile"))
+
+        self.assertEqual(catalog_response.status_code, 200)
+        self.assertContains(catalog_response, "Cadastrar exercicio")
+        self.assertNotContains(catalog_response, ">Dev</a>")
+        self.assertEqual(dev_response.status_code, 302)
+        self.assertEqual(dev_response["Location"], reverse("dashboard:home"))
+
+    def test_trainer_can_create_exercise_as_owner(self):
+        self.client.login(username=self.trainer.username, password=self.password)
+        response = self.client.post(
+            reverse("dashboard:dev_exercise_catalog"),
+            {
+                "name": "Avanco alternado",
+                "category": self.category.pk,
+                "focus": "forca",
+                "primary_muscle": "Quadriceps",
+                "secondary_muscles": "Gluteos",
+                "default_sets": "3",
+                "default_reps": "12",
+                "rest_seconds": "60",
+                "tutorial_duration": "02:00",
+                "image_url": "",
+                "anatomy_image_url": "",
+                "instructions_text": "Descer com controle",
+            },
+        )
+
+        exercise = Exercise.objects.get(name="Avanco alternado")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(exercise.created_by, self.trainer)
+
+    def test_trainer_cannot_edit_or_delete_another_trainers_exercise(self):
+        other_trainer = User.objects.create_user(username="other-trainer", password=self.password)
+        Group.objects.get(name=TRAINER_GROUP_NAME).user_set.add(other_trainer)
+        owned_exercise = Exercise.objects.create(
+            name="Exercicio de outro",
+            slug="exercicio-de-outro",
+            category=self.category,
+            focus="forca",
+            primary_muscle="Core",
+            created_by=other_trainer,
+        )
+        self.client.login(username=self.trainer.username, password=self.password)
+
+        edit_response = self.client.get(reverse("dashboard:dev_edit_training", kwargs={"pk": owned_exercise.pk}))
+        delete_response = self.client.post(reverse("dashboard:dev_delete_training", kwargs={"pk": owned_exercise.pk}))
+
+        self.assertEqual(edit_response.status_code, 302)
+        self.assertEqual(delete_response.status_code, 302)
+        self.assertTrue(Exercise.objects.filter(pk=owned_exercise.pk).exists())
+
 
 class ExerciseCatalogImportCommandTests(TestCase):
     def test_imports_text_catalog_without_creating_duplicates(self):
@@ -418,3 +539,56 @@ Series: 5 | Reps: 30 (em segundos)
         self.assertEqual(supino.default_reps, "10")
         self.assertEqual(burpee.focus, "hiit")
         self.assertEqual(burpee.secondary_muscles, "Membros Inferiores / Geral")
+
+    def test_structured_catalog_uses_training_goal_categories(self):
+        source_text = """
+1. Supino Reto
+Nome: Supino Reto
+Categoria: Forca (Membros Superiores)
+Foco: Peito
+Musculo Principal: Peitoral Maior
+Musculos Secundarios: Triceps, Deltoide Anterior
+Series Padrao: 4
+Reps Padrao: 8 a 10
+Descanso: 90
+Exercicio de Corrida: [ ] Nao marcado
+
+2. Agachamento Livre
+Nome: Agachamento Livre
+Categoria: Base (Membros Inferiores & Core)
+Foco: Pernas
+Musculo Principal: Quadriceps
+Musculos Secundarios: Gluteos, Posteriores, Core
+Series Padrao: 4
+Reps Padrao: 10
+Descanso: 90
+Exercicio de Corrida: [ ] Nao marcado
+
+3. Corrida de Tiros (HIIT)
+Nome: Corrida de Tiros (HIIT)
+Categoria: Resistencia (Cardio / Corrida)
+Foco: Cardio
+Musculo Principal: Sistema Cardiovascular
+Musculos Secundarios: Quadriceps, Isquiotibiais, Panturrilhas
+Series Padrao: 1
+Reps Padrao: 1
+Descanso: 0
+Exercicio de Corrida: [X] Marcado
+"""
+        with TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "catalog.txt"
+            source.write_text(source_text, encoding="utf-8")
+
+            call_command("import_exercise_catalog", str(source))
+
+        supino = Exercise.objects.get(name="Supino Reto")
+        agachamento = Exercise.objects.get(name="Agachamento Livre")
+        tiros = Exercise.objects.get(name="Corrida de Tiros (HIIT)")
+
+        self.assertEqual(supino.category.name, "Hipertrofia")
+        self.assertEqual(agachamento.category.name, "Hipertrofia")
+        self.assertEqual(tiros.category.name, "HIIT")
+        self.assertEqual(supino.focus, "forca")
+        self.assertEqual(tiros.focus, "hiit")
+        self.assertTrue(tiros.is_run)
+        self.assertFalse(ExerciseCategory.objects.filter(name__in=["Superior", "Inferior", "Cardio"]).exists())

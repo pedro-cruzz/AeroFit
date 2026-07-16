@@ -2,6 +2,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.views import LoginView
 from django.contrib.sessions.models import Session
 from django.db.models import Count, Max, Prefetch, Q
@@ -10,7 +11,15 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import DevUserCreationForm, ExerciseCreationForm, RoutineEditForm, SecureAuthenticationForm
+from .forms import (
+    DevUserCreationForm,
+    ExerciseCreationForm,
+    PublicUserCreationForm,
+    RoutineEditForm,
+    SecureAuthenticationForm,
+    can_manage_exercises,
+    is_trainer,
+)
 from .models import (
     Achievement,
     AthleteProfile,
@@ -31,6 +40,7 @@ from .services import award_workout_xp, ensure_physical_attributes, get_or_creat
 
 User = get_user_model()
 PROFILE_IMAGE = "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=240&q=80"
+AUTH_HERO_IMAGE = "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1400&q=85"
 LOWER_BODY_TERMS = (
     "quadriceps",
     "quadril",
@@ -57,6 +67,25 @@ class SecureLoginView(LoginView):
         return context
 
 
+def signup(request):
+    if request.user.is_authenticated:
+        return redirect("dashboard:home")
+
+    form = PublicUserCreationForm()
+    if request.method == "POST":
+        form = PublicUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            auth_login(request, user)
+            messages.success(request, "Conta criada com sucesso. Bem-vindo ao AeroFit.")
+            return redirect("dashboard:home")
+        messages.error(request, "Revise os dados para criar sua conta.")
+
+    context = base_context("signup")
+    context["form"] = form
+    return render(request, "dashboard/signup.html", context)
+
+
 def get_athlete_profile(user=None):
     if user and user.is_authenticated:
         return get_or_create_athlete_profile(user)
@@ -79,14 +108,22 @@ def base_context(active, user=None):
     ]
     if user and user.is_staff:
         nav_items.append({"label": "Dev", "icon": "admin_panel_settings", "url_name": "dashboard:dev_profile", "key": "dev"})
+    if user and can_manage_exercises(user):
         nav_items.append({"label": "Exercicios", "icon": "library_add", "url_name": "dashboard:dev_exercise_catalog", "key": "dev_exercises"})
 
     return {
         "active": active,
         "profile": profile,
         "profile_image": profile.image_url if profile and profile.image_url else PROFILE_IMAGE,
+        "auth_hero_image": AUTH_HERO_IMAGE,
         "nav_items": nav_items,
+        "is_trainer": is_trainer(user),
+        "can_manage_exercises": can_manage_exercises(user),
     }
+
+
+def can_edit_exercise(user, exercise):
+    return bool(user.is_staff or exercise.created_by_id == user.id)
 
 
 def get_online_users():
@@ -453,6 +490,9 @@ def dev_users(request):
             "online_users": online_users,
             "online_user_ids": {user.id for user in online_users},
             "active_user_ids": active_user_ids,
+            "trainer_user_ids": set(
+                User.objects.filter(groups__name="Personal").values_list("id", flat=True)
+            ),
             "total_users": users.count(),
             "show_user_modal": show_user_modal,
         }
@@ -461,7 +501,7 @@ def dev_users(request):
 
 
 @login_required
-@user_passes_test(lambda user: user.is_staff, login_url="dashboard:home", redirect_field_name=None)
+@user_passes_test(can_manage_exercises, login_url="dashboard:home", redirect_field_name=None)
 def dev_training_catalog(request):
     exercise_form = ExerciseCreationForm()
     show_form = False
@@ -470,7 +510,9 @@ def dev_training_catalog(request):
         show_form = True
         exercise_form = ExerciseCreationForm(request.POST)
         if exercise_form.is_valid():
-            exercise = exercise_form.save()
+            exercise = exercise_form.save(commit=False)
+            exercise.created_by = request.user
+            exercise.save()
             messages.success(request, f"Treino {exercise.name} cadastrado.")
             return redirect("dashboard:dev_exercise_catalog")
         messages.error(request, "Revise os dados do treino antes de salvar.")
@@ -483,6 +525,7 @@ def dev_training_catalog(request):
             "categories": categories,
             "total_exercises": Exercise.objects.count(),
             "show_form": show_form,
+            "can_access_dev": request.user.is_staff,
         }
     )
     return render(request, "dashboard/dev_training_catalog.html", context)
@@ -504,9 +547,13 @@ def dev_training_flow(request):
 
 
 @login_required
-@user_passes_test(lambda user: user.is_staff, login_url="dashboard:home", redirect_field_name=None)
+@user_passes_test(can_manage_exercises, login_url="dashboard:home", redirect_field_name=None)
 def dev_edit_training(request, pk):
     exercise = get_object_or_404(Exercise.objects.select_related("category"), pk=pk)
+    if not can_edit_exercise(request.user, exercise):
+        messages.error(request, "Personal pode editar apenas exercicios criados por ele.")
+        return redirect("dashboard:dev_exercise_catalog")
+
     form = ExerciseCreationForm(instance=exercise)
 
     if request.method == "POST":
@@ -523,10 +570,14 @@ def dev_edit_training(request, pk):
 
 
 @login_required
-@user_passes_test(lambda user: user.is_staff, login_url="dashboard:home", redirect_field_name=None)
+@user_passes_test(can_manage_exercises, login_url="dashboard:home", redirect_field_name=None)
 @require_POST
 def dev_delete_training(request, pk):
     exercise = get_object_or_404(Exercise, pk=pk)
+    if not can_edit_exercise(request.user, exercise):
+        messages.error(request, "Personal pode excluir apenas exercicios criados por ele.")
+        return redirect("dashboard:dev_exercise_catalog")
+
     exercise_name = exercise.name
     try:
         exercise.delete()

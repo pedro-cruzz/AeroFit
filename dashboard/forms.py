@@ -3,6 +3,7 @@ from hashlib import sha256
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -10,6 +11,24 @@ from .models import Exercise, LoginAttempt, WorkoutRoutine
 
 
 User = get_user_model()
+TRAINER_GROUP_NAME = "Personal"
+
+
+def get_trainer_group():
+    group, _created = Group.objects.get_or_create(name=TRAINER_GROUP_NAME)
+    return group
+
+
+def is_trainer(user):
+    return bool(
+        user
+        and user.is_authenticated
+        and user.groups.filter(name=TRAINER_GROUP_NAME).exists()
+    )
+
+
+def can_manage_exercises(user):
+    return bool(user and user.is_authenticated and (user.is_staff or is_trainer(user)))
 
 
 class SecureAuthenticationForm(AuthenticationForm):
@@ -89,11 +108,12 @@ class DevUserCreationForm(UserCreationForm):
     first_name = forms.CharField(label="Nome", max_length=150, required=False)
     last_name = forms.CharField(label="Sobrenome", max_length=150, required=False)
     email = forms.EmailField(label="Email", required=False)
+    is_trainer = forms.BooleanField(label="Perfil Personal", required=False)
     is_staff = forms.BooleanField(label="Conceder acesso Dev", required=False)
 
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ("username", "first_name", "last_name", "email", "is_staff")
+        fields = ("username", "first_name", "last_name", "email", "is_trainer", "is_staff")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -104,6 +124,77 @@ class DevUserCreationForm(UserCreationForm):
                 field.widget.attrs.update({"class": "form-control"})
             if name in {"password1", "password2"}:
                 field.help_text = ""
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        if commit and self.cleaned_data.get("is_trainer"):
+            user.groups.add(get_trainer_group())
+        return user
+
+
+class PublicUserCreationForm(UserCreationForm):
+    ACCOUNT_TYPE_CHOICES = [
+        ("student", "Aluno"),
+        ("trainer", "Personal"),
+    ]
+
+    first_name = forms.CharField(label="Nome", max_length=150, required=False)
+    email = forms.EmailField(label="Email", required=False)
+    account_type = forms.ChoiceField(
+        label="Perfil",
+        choices=ACCOUNT_TYPE_CHOICES,
+        initial="student",
+        widget=forms.RadioSelect,
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ("username", "first_name", "email", "account_type")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = "Usuario"
+        self.fields["password1"].label = "Senha"
+        self.fields["password2"].label = "Confirmar senha"
+        self.fields["account_type"].widget.attrs.update({"class": "auth-radio-list"})
+        self.fields["username"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "autocomplete": "username",
+                "autocapitalize": "none",
+                "spellcheck": "false",
+                "placeholder": "seu usuario",
+            }
+        )
+        self.fields["first_name"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "autocomplete": "given-name",
+                "placeholder": "seu nome",
+            }
+        )
+        self.fields["email"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "autocomplete": "email",
+                "placeholder": "voce@email.com",
+            }
+        )
+        for name in ("password1", "password2"):
+            self.fields[name].help_text = ""
+            self.fields[name].widget.attrs.update(
+                {
+                    "class": "form-control",
+                    "autocomplete": "new-password",
+                    "placeholder": "minimo 8 caracteres",
+                }
+            )
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        if commit and self.cleaned_data.get("account_type") == "trainer":
+            user.groups.add(get_trainer_group())
+        return user
 
 
 class RoutineEditForm(forms.ModelForm):

@@ -74,6 +74,13 @@ class Exercise(models.Model):
 
     name = models.CharField(max_length=120)
     slug = models.SlugField(unique=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="created_exercises",
+        null=True,
+        blank=True,
+    )
     category = models.ForeignKey(ExerciseCategory, on_delete=models.PROTECT, related_name="exercises")
     focus = models.CharField(max_length=20, choices=FOCUS_CHOICES)
     primary_muscle = models.CharField(max_length=120)
@@ -82,8 +89,8 @@ class Exercise(models.Model):
     default_reps = models.CharField(max_length=40, default="10")
     rest_seconds = models.PositiveIntegerField(default=60)
     tutorial_duration = models.CharField(max_length=10, default="02:00")
-    image_url = models.URLField(blank=True)
-    anatomy_image_url = models.URLField(blank=True)
+    image_url = models.CharField(max_length=500, blank=True)
+    anatomy_image_url = models.CharField(max_length=500, blank=True)
     instructions = models.JSONField(default=list, blank=True)
     is_run = models.BooleanField(default=False)
 
