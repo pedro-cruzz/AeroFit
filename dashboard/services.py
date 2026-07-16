@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 
 from django.db import transaction
@@ -51,14 +52,25 @@ def montar_treino(name, goal, exercise_ids=None, exercise_configs=None, owner=No
     if not exercises:
         raise ValueError("Cadastre pelo menos um exercicio antes de montar um treino.")
 
+    planned_items = [
+        {
+            "exercise": exercise,
+            "sets": exercise_configs.get(exercise.id, {}).get("sets") or exercise.default_sets,
+            "reps": exercise_configs.get(exercise.id, {}).get("reps") or exercise.default_reps,
+        }
+        for exercise in exercises
+    ]
+    duration_minutes = estimate_workout_duration(goal, planned_items, preset["duration"])
+    calories = estimate_workout_calories(goal, duration_minutes, planned_items, preset["calories"])
+
     with transaction.atomic():
         routine = WorkoutRoutine.objects.create(
             owner=owner,
             name=name.strip() or f"Treino de {dict(WorkoutRoutine.GOAL_CHOICES).get(goal, goal)}",
             goal=goal,
             description=preset["description"],
-            duration_minutes=preset["duration"],
-            calories=preset["calories"],
+            duration_minutes=duration_minutes,
+            calories=calories,
             level=preset["level"],
             progress=0,
             is_template=False,
@@ -70,17 +82,69 @@ def montar_treino(name, goal, exercise_ids=None, exercise_configs=None, owner=No
             [
                 WorkoutExercise(
                     routine=routine,
-                    exercise=exercise,
+                    exercise=item["exercise"],
                     order=index,
-                    sets=exercise_configs.get(exercise.id, {}).get("sets") or exercise.default_sets,
-                    reps=exercise_configs.get(exercise.id, {}).get("reps") or exercise.default_reps,
-                    rest_seconds=exercise.rest_seconds,
+                    sets=item["sets"],
+                    reps=item["reps"],
+                    rest_seconds=item["exercise"].rest_seconds,
                 )
-                for index, exercise in enumerate(exercises, start=1)
+                for index, item in enumerate(planned_items, start=1)
             ]
         )
 
     return routine
+
+
+def parse_minutes_from_reps(reps):
+    match = re.search(r"(\d+)\s*min", str(reps).lower())
+    if match:
+        return int(match.group(1))
+
+    distance_match = re.search(r"(\d+)\s*km", str(reps).lower())
+    if distance_match:
+        return int(distance_match.group(1)) * 6
+
+    return None
+
+
+def estimate_exercise_minutes(exercise, sets, reps):
+    if exercise.is_run or exercise.focus in {"endurance", "hiit"}:
+        minutes = parse_minutes_from_reps(reps)
+        if minutes:
+            return minutes
+        return max(8, min(30, sets * 3))
+
+    active_minutes = max(1, round(sets * 0.75))
+    rest_minutes = max(0, round((max(sets - 1, 0) * exercise.rest_seconds) / 60))
+    return max(4, active_minutes + rest_minutes + 2)
+
+
+def estimate_workout_duration(goal, planned_items, fallback):
+    if not planned_items:
+        return fallback
+
+    total = sum(
+        estimate_exercise_minutes(item["exercise"], item["sets"], item["reps"])
+        for item in planned_items
+    )
+    setup_buffer = 5 if goal in {"forca", "hipertrofia"} else 3
+    return max(12, min(120, total + setup_buffer))
+
+
+def estimate_workout_calories(goal, duration_minutes, planned_items, fallback):
+    if not planned_items:
+        return fallback
+
+    factor_by_goal = {
+        "forca": 6.6,
+        "hipertrofia": 6.2,
+        "endurance": 8.4,
+        "hiit": 10.5,
+        "mobilidade": 3.6,
+    }
+    factor = factor_by_goal.get(goal, 6.0)
+    exercise_bonus = len(planned_items) * (8 if goal in {"forca", "hipertrofia"} else 5)
+    return max(40, round((duration_minutes * factor) + exercise_bonus))
 
 
 def get_or_create_athlete_profile(user):

@@ -1986,6 +1986,49 @@ a {
     margin-bottom: 24px;
 }
 
+.video-panel-embed {
+    display: block;
+    background: var(--surface);
+}
+
+.video-panel-empty {
+    background:
+        radial-gradient(circle at 62% 28%, rgba(0, 229, 255, 0.18), transparent 38%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 44%),
+        var(--surface);
+}
+
+.video-panel-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.media-empty-state {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 24px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.media-empty-state .material-symbols-outlined {
+    color: var(--cyan);
+    font-size: 3rem;
+}
+
+.media-empty-state strong {
+    color: var(--text);
+    font-size: 1.1rem;
+}
+
+.media-empty-state small {
+    max-width: 280px;
+}
+
 .video-shade {
     position: absolute;
     inset: 0;
@@ -2023,6 +2066,13 @@ a {
     font-weight: 900;
 }
 
+.video-credit {
+    margin: -12px 0 24px;
+    color: var(--muted);
+    font: 700 0.76rem JetBrains Mono, monospace;
+    text-transform: uppercase;
+}
+
 .duration {
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.55);
@@ -2046,6 +2096,25 @@ a {
     object-fit: cover;
     border-radius: 8px;
     opacity: 0.86;
+}
+
+.anatomy-empty {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 24px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.anatomy-empty .material-symbols-outlined {
+    color: var(--cyan);
+    font-size: 3rem;
+}
+
+.anatomy-empty strong {
+    color: var(--text);
+    font-size: 1.05rem;
 }
 
 .focus-card {

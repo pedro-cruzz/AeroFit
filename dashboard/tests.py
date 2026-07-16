@@ -210,6 +210,49 @@ class StudentWorkoutOwnershipTests(TestCase):
         self.assertEqual(item.sets, 5)
         self.assertEqual(item.reps, "8")
 
+    def test_workout_metrics_scale_with_selected_exercises(self):
+        second_exercise = Exercise.objects.create(
+            name="Remada aluno",
+            slug="remada-aluno",
+            category=self.category,
+            focus="forca",
+            primary_muscle="Dorsal",
+            default_sets=4,
+            default_reps="10",
+            rest_seconds=90,
+        )
+        self.client.login(username=self.student.username, password=self.password)
+
+        self.client.post(
+            reverse("dashboard:workouts"),
+            {
+                "name": "Curto",
+                "goal": "forca",
+                "exercises": [str(self.exercise.id)],
+                f"sets_{self.exercise.id}": "2",
+                f"reps_{self.exercise.id}": "8",
+            },
+        )
+        self.client.post(
+            reverse("dashboard:workouts"),
+            {
+                "name": "Longo",
+                "goal": "forca",
+                "exercises": [str(self.exercise.id), str(second_exercise.id)],
+                f"sets_{self.exercise.id}": "5",
+                f"reps_{self.exercise.id}": "8",
+                f"sets_{second_exercise.id}": "5",
+                f"reps_{second_exercise.id}": "10",
+            },
+        )
+
+        short = WorkoutRoutine.objects.get(name="Curto")
+        long = WorkoutRoutine.objects.get(name="Longo")
+        self.assertGreater(long.duration_minutes, short.duration_minutes)
+        self.assertGreater(long.calories, short.calories)
+        self.assertNotEqual(short.duration_minutes, 60)
+        self.assertNotEqual(short.calories, 430)
+
     def test_workout_builder_is_inside_modal(self):
         self.client.login(username=self.student.username, password=self.password)
         lower_exercise = Exercise.objects.create(
@@ -301,6 +344,29 @@ class StudentWorkoutOwnershipTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'href="{reverse("dashboard:home")}"')
+
+    def test_exercise_detail_embeds_youtube_video_when_configured(self):
+        self.exercise.video_url = "https://youtu.be/dQw4w9WgXcQ"
+        self.exercise.video_credit = "Canal teste"
+        self.exercise.save(update_fields=["video_url", "video_credit"])
+        self.client.login(username=self.student.username, password=self.password)
+
+        response = self.client.get(self.exercise.get_absolute_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ")
+        self.assertContains(response, "Fonte: Canal teste")
+
+    def test_exercise_detail_handles_missing_media_without_broken_assets(self):
+        self.client.login(username=self.student.username, password=self.password)
+
+        response = self.client.get(self.exercise.get_absolute_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Video nao cadastrado")
+        self.assertContains(response, "Adicione um link do YouTube")
+        self.assertNotContains(response, 'src=""')
+        self.assertNotContains(response, "youtube-nocookie.com/embed")
 
     def test_student_cannot_delete_another_students_workout(self):
         routine = WorkoutRoutine.objects.create(owner=self.other_student, name="Outra", goal="forca")
@@ -403,6 +469,27 @@ class StudentWorkoutOwnershipTests(TestCase):
         self.assertContains(response, f'name="rpe_{item.id}"')
         self.assertContains(response, f'{self.exercise.get_absolute_url()}?return_to=/treinos/{routine.pk}/')
 
+    def test_progress_page_uses_user_xp_events_instead_of_fixed_mock_metrics(self):
+        routine = WorkoutRoutine.objects.create(owner=self.student, name="Minha", goal="forca", duration_minutes=22)
+        session = WorkoutSession.objects.create(routine=routine)
+        UserXpEvent.objects.create(
+            user=self.student,
+            session=session,
+            total_xp=75,
+            strength_xp=50,
+            endurance_xp=25,
+            base_xp=0,
+        )
+        self.client.login(username=self.student.username, password=self.password)
+
+        response = self.client.get(reverse("dashboard:progress"))
+
+        self.assertContains(response, "+50 XP")
+        self.assertContains(response, "+25 XP")
+        self.assertContains(response, "Minha")
+        self.assertNotContains(response, "+14%")
+        self.assertNotContains(response, "+8%")
+
 
 class DevTrainingActionTests(TestCase):
     def setUp(self):
@@ -493,6 +580,8 @@ class DevTrainingActionTests(TestCase):
                 "tutorial_duration": "02:00",
                 "image_url": "",
                 "anatomy_image_url": "",
+                "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "video_credit": "Canal tecnico",
                 "instructions_text": "Descer com controle",
             },
         )
@@ -500,6 +589,8 @@ class DevTrainingActionTests(TestCase):
         exercise = Exercise.objects.get(name="Avanco alternado")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(exercise.created_by, self.trainer)
+        self.assertEqual(exercise.youtube_video_id, "dQw4w9WgXcQ")
+        self.assertEqual(exercise.video_credit, "Canal tecnico")
 
     def test_trainer_cannot_edit_or_delete_another_trainers_exercise(self):
         other_trainer = User.objects.create_user(username="other-trainer", password=self.password)
@@ -626,3 +717,22 @@ Exercicio de Corrida: [X] Marcado
         self.assertEqual(corrida.category.name, "Endurance")
         self.assertEqual(supino.image_url, "")
         self.assertEqual(supino.anatomy_image_url, "")
+        self.assertTrue(Exercise.objects.filter(name="Barra fixa supinada").exists())
+        self.assertTrue(Exercise.objects.filter(name="Voador peitoral").exists())
+        self.assertFalse(Exercise.objects.filter(name="Chin-up").exists())
+
+    def test_extended_catalog_renames_legacy_english_exercises_without_duplicates(self):
+        category = ExerciseCategory.objects.create(name="Hipertrofia", icon="fitness_center", accent="cyan")
+        Exercise.objects.create(
+            name="Chin-up",
+            slug="chin-up",
+            category=category,
+            focus="forca",
+            primary_muscle="Dorsal",
+        )
+
+        call_command("seed_extended_exercise_catalog")
+
+        self.assertEqual(Exercise.objects.count(), 150)
+        self.assertFalse(Exercise.objects.filter(slug="chin-up").exists())
+        self.assertTrue(Exercise.objects.filter(slug="barra-fixa-supinada", name="Barra fixa supinada").exists())

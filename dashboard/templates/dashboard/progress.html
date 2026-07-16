@@ -5,20 +5,20 @@
 {% block content %}
 <header class="page-heading">
     <h1>Progresso</h1>
-    <p>Sua evolução técnica e fisiológica.</p>
+    <p>Sua evolucao tecnica e fisiologica.</p>
 </header>
 
 <section class="row g-4 mb-4">
     <div class="col-lg-8">
         <article class="surface-card level-card">
-            <span class="eyebrow">Nível do atleta</span>
+            <span class="eyebrow">Nivel do atleta</span>
             <div class="d-flex align-items-end gap-2 my-2">
                 <strong class="display-stat">{{ profile.level }}</strong>
                 <span class="text-secondary-soft mb-2">Elite Performance</span>
             </div>
             <div class="d-flex justify-content-between mono-label mb-2">
                 <span>Total XP: {{ profile.total_xp }}</span>
-                <span class="text-primary-symbol">Próximo nível: {{ profile.next_level_xp }}</span>
+                <span class="text-primary-symbol">Proximo nivel: {{ profile.next_level_xp }}</span>
             </div>
             <div class="precision-progress"><span class="bar-cyan" style="width: {{ profile.xp_progress }}%"></span></div>
             <span class="material-symbols-outlined level-bg filled">workspace_premium</span>
@@ -37,25 +37,25 @@
     <div class="col-lg-6">
         <article class="surface-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="eyebrow">Força (30d)</h2>
-                <strong class="metric-up cyan">+14%</strong>
+                <h2 class="eyebrow">Forca (30d)</h2>
+                <strong class="metric-up cyan">+{{ progress_stats.strength_total }} XP</strong>
             </div>
             <div class="bar-chart">
-                <span style="height: 40%"></span><span style="height: 45%"></span><span style="height: 42%"></span>
-                <span style="height: 55%"></span><span style="height: 60%"></span><span class="is-hot" style="height: 75%"></span>
-                <span class="is-hot" style="height: 85%"></span>
+                {% for height in progress_stats.strength_bars %}
+                    <span class="{% if forloop.counter > 5 %}is-hot{% endif %}" style="height: {{ height }}%"></span>
+                {% endfor %}
             </div>
         </article>
     </div>
     <div class="col-lg-6">
         <article class="surface-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="eyebrow">Resistência (30d)</h2>
-                <strong class="metric-up lime">+8%</strong>
+                <h2 class="eyebrow">Resistencia (30d)</h2>
+                <strong class="metric-up lime">+{{ progress_stats.endurance_total }} XP</strong>
             </div>
             <svg class="line-chart" viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M0,80 Q25,75 50,60 T100,40 T150,45 T200,20" fill="none" stroke="#ccff00" stroke-width="2"></path>
-                <path d="M0,80 Q25,75 50,60 T100,40 T150,45 T200,20 V100 H0 Z" fill="#ccff00" opacity="0.14"></path>
+                <path d="{{ progress_stats.endurance_path }}" fill="none" stroke="#ccff00" stroke-width="2"></path>
+                <path d="{{ progress_stats.endurance_fill_path }}" fill="#ccff00" opacity="0.14"></path>
             </svg>
         </article>
     </div>
@@ -74,7 +74,7 @@
 </section>
 
 <section class="mb-5">
-    <h2 class="eyebrow mb-3">Histórico de treinos</h2>
+    <h2 class="eyebrow mb-3">Historico de treinos</h2>
     <div class="v-stack">
         {% for item in history %}
             <article class="surface-card history-row">
@@ -90,6 +90,11 @@
                     <span>{{ item.tag }}</span>
                 </div>
             </article>
+        {% empty %}
+            <div class="surface-empty">
+                <span class="material-symbols-outlined">query_stats</span>
+                <p>Nenhum treino concluido ainda. Finalize uma planilha para gerar progresso real.</p>
+            </div>
         {% endfor %}
     </div>
 </section>

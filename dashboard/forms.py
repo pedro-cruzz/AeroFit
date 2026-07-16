@@ -278,6 +278,8 @@ class ExerciseCreationForm(forms.ModelForm):
             "tutorial_duration",
             "image_url",
             "anatomy_image_url",
+            "video_url",
+            "video_credit",
             "is_run",
         )
         labels = {
@@ -292,6 +294,8 @@ class ExerciseCreationForm(forms.ModelForm):
             "tutorial_duration": "Duracao do tutorial",
             "image_url": "Imagem",
             "anatomy_image_url": "Imagem anatomica",
+            "video_url": "Video do YouTube",
+            "video_credit": "Credito do video",
             "is_run": "Exercicio de corrida",
         }
         widgets = {

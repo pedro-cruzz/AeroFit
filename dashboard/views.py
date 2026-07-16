@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.views import LoginView
 from django.contrib.sessions.models import Session
-from django.db.models import Count, Max, Prefetch, Q
+from django.db.models import Count, Max, Prefetch, Q, Sum
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -29,8 +29,8 @@ from .models import (
     ExerciseCategory,
     LeaderboardEntry,
     PhysicalAttribute,
-    ProgressEntry,
     UserActivityLog,
+    UserXpEvent,
     WeeklyPlan,
     WorkoutRoutine,
     WorkoutSession,
@@ -615,12 +615,99 @@ def dev_development(request):
     return render(request, "dashboard/dev_development.html", context)
 
 
+def percent_change(current, previous):
+    if not previous:
+        return 100 if current else 0
+    return round(((current - previous) / previous) * 100)
+
+
+def build_progress_bars(values):
+    highest = max(values) if values else 0
+    if not highest:
+        return [8 for _value in values]
+    return [max(8, round((value / highest) * 88)) for value in values]
+
+
+def build_line_path(values):
+    if not values:
+        return "M0,88 L200,88", "M0,88 L200,88 V100 H0 Z"
+
+    highest = max(values)
+    points = []
+    for index, value in enumerate(values):
+        x = round((200 / max(len(values) - 1, 1)) * index, 2)
+        y = 88 if not highest else round(88 - ((value / highest) * 68), 2)
+        points.append((x, y))
+
+    path = " ".join(f"{'M' if index == 0 else 'L'}{x},{y}" for index, (x, y) in enumerate(points))
+    fill_path = f"{path} V100 H0 Z"
+    return path, fill_path
+
+
+def build_progress_stats(user):
+    today = timezone.localdate()
+    start_date = today - timezone.timedelta(days=29)
+    mid_date = today - timezone.timedelta(days=14)
+    events = UserXpEvent.objects.filter(user=user, created_at__date__gte=start_date)
+
+    strength_total = events.aggregate(total=Sum("strength_xp"))["total"] or 0
+    endurance_total = events.aggregate(total=Sum("endurance_xp"))["total"] or 0
+    recent_events = events.filter(created_at__date__gte=mid_date)
+    previous_events = events.filter(created_at__date__lt=mid_date)
+    recent_strength = recent_events.aggregate(total=Sum("strength_xp"))["total"] or 0
+    previous_strength = previous_events.aggregate(total=Sum("strength_xp"))["total"] or 0
+    recent_endurance = recent_events.aggregate(total=Sum("endurance_xp"))["total"] or 0
+    previous_endurance = previous_events.aggregate(total=Sum("endurance_xp"))["total"] or 0
+
+    strength_series = []
+    endurance_series = []
+    for offset in range(6, -1, -1):
+        day = today - timezone.timedelta(days=offset)
+        day_events = events.filter(created_at__date=day)
+        strength_series.append(day_events.aggregate(total=Sum("strength_xp"))["total"] or 0)
+        endurance_series.append(day_events.aggregate(total=Sum("endurance_xp"))["total"] or 0)
+
+    endurance_path, endurance_fill_path = build_line_path(endurance_series)
+    return {
+        "strength_total": strength_total,
+        "endurance_total": endurance_total,
+        "strength_change": percent_change(recent_strength, previous_strength),
+        "endurance_change": percent_change(recent_endurance, previous_endurance),
+        "strength_bars": build_progress_bars(strength_series),
+        "endurance_path": endurance_path,
+        "endurance_fill_path": endurance_fill_path,
+    }
+
+
+def build_progress_history(user):
+    events = (
+        UserXpEvent.objects.filter(user=user)
+        .select_related("session__routine")
+        .order_by("-created_at")[:12]
+    )
+    history = []
+    for event in events:
+        routine = event.session.routine if event.session_id else None
+        history.append(
+            {
+                "name": routine.name if routine else "Treino concluido",
+                "date_label": timezone.localtime(event.created_at).strftime("%d/%m"),
+                "duration_minutes": routine.duration_minutes if routine else 0,
+                "xp": event.total_xp,
+                "tag": "Forca" if event.strength_xp >= event.endurance_xp else "Resistencia",
+                "icon": "fitness_center" if event.strength_xp >= event.endurance_xp else "directions_run",
+            }
+        )
+    return history
+
+
 @login_required
 def progress(request):
     context = base_context("progress", request.user)
     context.update(
         {
-            "history": ProgressEntry.objects.all(),
+            "progress_stats": build_progress_stats(request.user),
+            "history": build_progress_history(request.user),
             "achievements": Achievement.objects.all(),
         }
     )

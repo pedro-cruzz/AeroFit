@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs, urlparse
+
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
@@ -91,6 +93,8 @@ class Exercise(models.Model):
     tutorial_duration = models.CharField(max_length=10, default="02:00")
     image_url = models.CharField(max_length=500, blank=True)
     anatomy_image_url = models.CharField(max_length=500, blank=True)
+    video_url = models.CharField(max_length=500, blank=True)
+    video_credit = models.CharField(max_length=160, blank=True)
     instructions = models.JSONField(default=list, blank=True)
     is_run = models.BooleanField(default=False)
 
@@ -102,6 +106,45 @@ class Exercise(models.Model):
 
     def get_absolute_url(self):
         return reverse("dashboard:exercise_detail", kwargs={"slug": self.slug})
+
+    @property
+    def youtube_video_id(self):
+        value = (self.video_url or "").strip()
+        if not value:
+            return ""
+
+        if "://" not in value and "/" not in value and "?" not in value and len(value) == 11:
+            return value
+
+        parsed = urlparse(value)
+        host = parsed.netloc.lower().replace("www.", "")
+        path_parts = [part for part in parsed.path.split("/") if part]
+
+        if host == "youtu.be" and path_parts:
+            return path_parts[0][:11]
+
+        if host.endswith("youtube.com"):
+            query_video_id = parse_qs(parsed.query).get("v", [""])[0]
+            if query_video_id:
+                return query_video_id[:11]
+            if path_parts and path_parts[0] in {"embed", "shorts", "live"} and len(path_parts) > 1:
+                return path_parts[1][:11]
+
+        return ""
+
+    @property
+    def youtube_embed_url(self):
+        video_id = self.youtube_video_id
+        if not video_id:
+            return ""
+        return f"https://www.youtube-nocookie.com/embed/{video_id}"
+
+    @property
+    def youtube_thumbnail_url(self):
+        video_id = self.youtube_video_id
+        if not video_id:
+            return ""
+        return f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
 
 
 class WorkoutRoutine(models.Model):
