@@ -1835,16 +1835,134 @@ a {
 }
 
 @media (max-width: 620px) {
+    .login-body {
+        min-height: 100svh;
+    }
+
     .login-shell {
-        padding: 14px;
+        min-height: 100svh;
+        place-items: start stretch;
+        padding: 10px;
+        background:
+            linear-gradient(150deg, rgba(0, 229, 255, 0.14), transparent 34%),
+            linear-gradient(330deg, rgba(204, 255, 0, 0.07), transparent 32%),
+            var(--bg);
+    }
+
+    .auth-layout {
+        gap: 10px;
     }
 
     .auth-showcase {
+        display: grid;
+        order: 1;
+        gap: 8px;
+    }
+
+    .auth-showcase-media {
+        min-height: 154px;
+        height: 154px;
+        border-radius: 8px;
+    }
+
+    .auth-showcase-shade {
+        background:
+            linear-gradient(180deg, rgba(18, 18, 20, 0.05), rgba(18, 18, 20, 0.9)),
+            linear-gradient(90deg, rgba(0, 229, 255, 0.18), transparent 64%);
+    }
+
+    .auth-showcase-content {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        gap: 8px;
+    }
+
+    .auth-showcase-content h2 {
+        max-width: 320px;
+        font-size: 1.28rem;
+        line-height: 1.08;
+        letter-spacing: 0;
+    }
+
+    .auth-score-row {
+        gap: 6px;
+    }
+
+    .auth-score-row span,
+    .auth-score-row strong {
+        padding: 6px 8px;
+        font-size: 0.62rem;
+    }
+
+    .auth-metric-grid {
         display: none;
     }
 
     .login-panel {
-        min-height: calc(100vh - 28px);
+        order: 2;
+        min-height: auto;
+        gap: 16px;
+        padding: 18px;
+        box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28);
+    }
+
+    .login-brand {
+        gap: 10px;
+        font-size: 1.05rem;
+    }
+
+    .login-brand .avatar {
+        width: 38px;
+        height: 38px;
+    }
+
+    .login-panel h1 {
+        margin-top: 2px;
+        font-size: 2rem;
+        line-height: 1.05;
+    }
+
+    .login-panel p {
+        font-size: 0.92rem;
+    }
+
+    .login-form {
+        gap: 12px;
+    }
+
+    .auth-field-control {
+        border-radius: 6px;
+    }
+
+    .auth-field-control .form-control {
+        min-height: 50px;
+        font-size: 1rem;
+    }
+
+    .auth-field-control > .material-symbols-outlined {
+        margin-left: 12px;
+        font-size: 1.25rem;
+    }
+
+    .auth-radio-list {
+        gap: 8px;
+    }
+
+    .auth-radio-option {
+        min-height: 46px;
+        padding: 9px 10px;
+        border-radius: 6px;
+        font-size: 0.92rem;
+    }
+
+    .auth-submit {
+        min-height: 52px;
+        border-radius: 6px;
+    }
+
+    .auth-switch {
+        font-size: 0.88rem;
     }
 }
 

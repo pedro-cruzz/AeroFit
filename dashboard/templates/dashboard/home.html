@@ -82,7 +82,7 @@
                                     <input class="form-control form-control-sm" type="number" step="0.5" min="0" name="load_{{ row.item.id }}" placeholder="{{ row.previous_load|default:'0' }}">
                                 </label>
                             {% endif %}
-                            <a href="{{ row.item.exercise.get_absolute_url }}" class="btn btn-sm btn-ghost">
+                            <a href="{{ row.item.exercise.get_absolute_url }}?return_to={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-ghost">
                                 <span class="material-symbols-outlined">play_circle</span>
                                 Execucao
                             </a>

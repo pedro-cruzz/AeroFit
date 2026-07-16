@@ -3,8 +3,9 @@
 {% block title %}AeroFit - {{ exercise.name }}{% endblock %}
 
 {% block shell %}
+{% url 'dashboard:home' as default_return_url %}
 <header class="detail-topbar">
-    <a href="{% url 'dashboard:home' %}" class="icon-button" aria-label="Voltar">
+    <a href="{{ return_to|default:default_return_url }}" class="icon-button" aria-label="Voltar">
         <span class="material-symbols-outlined">arrow_back</span>
     </a>
     <h1>{{ exercise.name }}</h1>

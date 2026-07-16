@@ -92,7 +92,7 @@
                             <input class="form-check-input precision-check" type="checkbox" name="completed_{{ row.item.id }}" checked>
                             <span>Concluido</span>
                         </label>
-                        <a href="{{ row.item.exercise.get_absolute_url }}" class="btn btn-sm btn-ghost">
+                        <a href="{{ row.item.exercise.get_absolute_url }}?return_to={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-ghost">
                             <span class="material-symbols-outlined">play_circle</span>
                             Execucao
                         </a>

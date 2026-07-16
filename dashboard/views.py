@@ -9,6 +9,7 @@ from django.db.models import Count, Max, Prefetch, Q
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .forms import (
@@ -641,6 +642,10 @@ def elite(request):
 @login_required
 def exercise_detail(request, slug):
     exercise = get_object_or_404(Exercise.objects.select_related("category"), slug=slug)
+    return_to = request.GET.get("return_to") or request.META.get("HTTP_REFERER", "")
+    if not url_has_allowed_host_and_scheme(return_to, allowed_hosts={request.get_host()}):
+        return_to = None
     context = base_context("exercise", request.user)
     context["exercise"] = exercise
+    context["return_to"] = return_to
     return render(request, "dashboard/exercise_detail.html", context)

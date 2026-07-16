@@ -235,14 +235,6 @@ EXERCISE_CATALOG = [
 ]
 
 
-def exercise_asset_paths(name):
-    asset_slug = slugify(name)[:70] or "exercicio"
-    return {
-        "image_url": f"/static/dashboard/exercises/tutorial/{asset_slug}.svg",
-        "anatomy_image_url": f"/static/dashboard/exercises/anatomy/{asset_slug}.svg",
-    }
-
-
 class Command(BaseCommand):
     help = "Cadastra uma biblioteca ampla de exercicios pesquisados e organizados para o AeroFit."
 
@@ -279,7 +271,6 @@ class Command(BaseCommand):
                 "tutorial_duration": TUTORIAL_BY_FOCUS[item["focus"]],
                 "instructions": GENERIC_INSTRUCTIONS[item["focus"]],
                 "is_run": item["is_run"],
-                **exercise_asset_paths(item["name"]),
             }
 
             if exercise:

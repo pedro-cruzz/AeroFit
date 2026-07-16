@@ -80,7 +80,7 @@
                 <div class="v-stack">
                     {% for exercise in category.exercises.all %}
                         <article class="exercise-row action-row accent-{{ category.accent }} exercise-goal-{{ exercise.focus }}">
-                            <a class="action-row-main" href="{{ exercise.get_absolute_url }}">
+                            <a class="action-row-main" href="{{ exercise.get_absolute_url }}?return_to={{ request.get_full_path|urlencode }}">
                                 <span class="material-symbols-outlined">{{ category.icon }}</span>
                                 <div>
                                     <strong>{{ exercise.name }}</strong>

@@ -283,6 +283,24 @@ class StudentWorkoutOwnershipTests(TestCase):
         self.assertContains(response, "Treino de hoje: Minha hoje")
         self.assertContains(response, f'name="load_{item.id}"')
         self.assertContains(response, f'action="{expected_action}"')
+        self.assertContains(response, f'{self.exercise.get_absolute_url()}?return_to=/dashboard/')
+
+    def test_exercise_detail_back_link_uses_return_to_source(self):
+        self.client.login(username=self.student.username, password=self.password)
+        source_path = reverse("dashboard:routine_detail", kwargs={"pk": WorkoutRoutine.objects.create(owner=self.student, name="Origem", goal="forca").pk})
+
+        response = self.client.get(f"{self.exercise.get_absolute_url()}?return_to={source_path}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{source_path}"')
+
+    def test_exercise_detail_back_link_defaults_to_dashboard(self):
+        self.client.login(username=self.student.username, password=self.password)
+
+        response = self.client.get(self.exercise.get_absolute_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{reverse("dashboard:home")}"')
 
     def test_student_cannot_delete_another_students_workout(self):
         routine = WorkoutRoutine.objects.create(owner=self.other_student, name="Outra", goal="forca")
@@ -383,6 +401,7 @@ class StudentWorkoutOwnershipTests(TestCase):
 
         self.assertContains(response, "Anterior: 82.5 kg")
         self.assertContains(response, f'name="rpe_{item.id}"')
+        self.assertContains(response, f'{self.exercise.get_absolute_url()}?return_to=/treinos/{routine.pk}/')
 
 
 class DevTrainingActionTests(TestCase):
@@ -592,3 +611,18 @@ Exercicio de Corrida: [X] Marcado
         self.assertEqual(tiros.focus, "hiit")
         self.assertTrue(tiros.is_run)
         self.assertFalse(ExerciseCategory.objects.filter(name__in=["Superior", "Inferior", "Cardio"]).exists())
+
+    def test_extended_catalog_imports_curated_exercises_without_placeholder_assets(self):
+        output = io.StringIO()
+
+        call_command("seed_extended_exercise_catalog", stdout=output)
+
+        supino = Exercise.objects.get(slug="supino-reto")
+        corrida = Exercise.objects.get(slug="corrida-leve")
+
+        self.assertEqual(Exercise.objects.count(), 150)
+        self.assertIn("150 processados", output.getvalue())
+        self.assertEqual(supino.category.name, "Hipertrofia")
+        self.assertEqual(corrida.category.name, "Endurance")
+        self.assertEqual(supino.image_url, "")
+        self.assertEqual(supino.anatomy_image_url, "")

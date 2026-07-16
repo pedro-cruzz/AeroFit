@@ -70,6 +70,7 @@ Depois do primeiro deploy, rode no Shell do Render se quiser popular o beta com 
 
 ```bash
 python manage.py seed_aerofit
+python manage.py seed_extended_exercise_catalog
 ```
 
 Para criar um admin:
@@ -90,4 +91,6 @@ python manage.py createsuperuser
 
 ## Dados
 
-Por padrao, os dados ficam em `db.sqlite3`. Quando `DATABASE_URL` estiver configurado, o Django usa o Postgres do Neon. O comando `python manage.py seed_aerofit` recria perfil, atributos, exercicios, rotinas, plano semanal, progresso, ranking e desafios. A funcao de montagem esta em `dashboard/services.py` como `montar_treino(...)`.
+Por padrao, os dados ficam em `db.sqlite3`. Quando `DATABASE_URL` estiver configurado, o Django usa o Postgres do Neon. O comando `python manage.py seed_aerofit` recria perfil, atributos, exercicios, rotinas, plano semanal, progresso, ranking e desafios. Para popular uma biblioteca maior de musculacao, corrida, cardio, HIIT e mobilidade, rode `python manage.py seed_extended_exercise_catalog`.
+
+As imagens dos exercicios podem ficar versionadas em `dashboard/static/dashboard/exercises/`, mas devem ser fotos/ilustracoes reais do movimento ou assets gerados e revisados. A funcao de montagem esta em `dashboard/services.py` como `montar_treino(...)`.
