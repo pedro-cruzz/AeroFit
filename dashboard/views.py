@@ -7,7 +7,6 @@ from django.contrib.sessions.models import Session
 from django.db.models import Count, Max, Prefetch, Q
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -155,6 +154,23 @@ def build_workout_category_groups():
     return groups
 
 
+def workout_builder_context(request, show_workout_modal=False):
+    context = base_context("workouts", request.user)
+    workout_categories = build_workout_category_groups()
+    categories = [entry["category"] for entry in workout_categories]
+    context.update(
+        {
+            "routines": WorkoutRoutine.objects.filter(owner=request.user, is_template=False).prefetch_related("items"),
+            "categories": categories,
+            "workout_categories": workout_categories,
+            "goals": WorkoutRoutine.GOAL_CHOICES,
+            "weekday_choices": WorkoutRoutine.WEEKDAY_CHOICES,
+            "show_workout_modal": show_workout_modal,
+        }
+    )
+    return context
+
+
 @login_required
 def dashboard(request):
     context = base_context("home", request.user)
@@ -190,7 +206,6 @@ def dashboard(request):
 
 @login_required
 def workouts(request):
-    context = base_context("workouts", request.user)
     show_workout_modal = request.GET.get("modal") == "1"
     if request.method == "POST":
         show_workout_modal = True
@@ -199,18 +214,7 @@ def workouts(request):
             messages.success(request, f"Treino {routine.name} montado e salvo para o aluno.")
             return redirect("dashboard:routine_detail", pk=routine.pk)
 
-    workout_categories = build_workout_category_groups()
-    categories = [entry["category"] for entry in workout_categories]
-    context.update(
-        {
-            "routines": WorkoutRoutine.objects.filter(owner=request.user, is_template=False).prefetch_related("items"),
-            "categories": categories,
-            "workout_categories": workout_categories,
-            "goals": WorkoutRoutine.GOAL_CHOICES,
-            "weekday_choices": WorkoutRoutine.WEEKDAY_CHOICES,
-            "show_workout_modal": show_workout_modal,
-        }
-    )
+    context = workout_builder_context(request, show_workout_modal)
     return render(request, "dashboard/workouts.html", context)
 
 
@@ -221,7 +225,7 @@ def workout_builder(request):
         if routine:
             messages.success(request, f"Treino {routine.name} montado e salvo para o aluno.")
             return redirect("dashboard:routine_detail", pk=routine.pk)
-    return redirect(f"{reverse('dashboard:workouts')}?modal=1")
+    return render(request, "dashboard/workouts.html", workout_builder_context(request, show_workout_modal=True))
 
 
 def create_workout_from_request(request):

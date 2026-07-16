@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: aerofit-beta
+    runtime: python
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: python -m gunicorn aerofit_project.asgi:application -k uvicorn.workers.UvicornWorker
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: WEB_CONCURRENCY
+        value: "4"

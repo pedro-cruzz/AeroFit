@@ -25,16 +25,69 @@ python -m venv "$env:TEMP\aerofit-venv"
 & "$env:TEMP\aerofit-venv\Scripts\python.exe" manage.py runserver
 ```
 
-## Páginas
+## Banco Postgres no Neon
+
+O projeto carrega variaveis de ambiente a partir de `.env`. Para usar o banco do Neon:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Abra o `.env` e cole a connection string do Neon em `DATABASE_URL`.
+Use a URL no formato `postgresql://...` com `sslmode=require`.
+
+Depois rode:
+
+```powershell
+python manage.py migrate
+python manage.py seed_aerofit
+python manage.py runserver
+```
+
+Sem `DATABASE_URL`, o projeto continua usando `db.sqlite3` para desenvolvimento local.
+
+## Beta no Render
+
+O projeto ja inclui `render.yaml` para criar o Web Service Python no Render usando o Postgres externo do Neon.
+
+1. Suba este repositorio para GitHub/GitLab/Bitbucket.
+2. No Render, crie um **Blueprint** apontando para o repositorio.
+3. O Render vai usar `bash build.sh` para instalar dependencias, coletar arquivos estaticos e rodar migrations.
+4. O start command configurado e:
+
+```bash
+python -m gunicorn aerofit_project.asgi:application -k uvicorn.workers.UvicornWorker
+```
+
+Variaveis configuradas pelo blueprint:
+
+- `DATABASE_URL` deve receber a connection string do Neon no painel do Render.
+- `DJANGO_SECRET_KEY` gerada automaticamente.
+- `DJANGO_DEBUG=0`.
+- `WEB_CONCURRENCY=4`.
+
+Depois do primeiro deploy, rode no Shell do Render se quiser popular o beta com dados iniciais:
+
+```bash
+python manage.py seed_aerofit
+```
+
+Para criar um admin:
+
+```bash
+python manage.py createsuperuser
+```
+
+## Paginas
 
 - `/` Dashboard
 - `/treinos/` Biblioteca de treinos
-- `/treinos/montar/` Montar treino e salvar no SQLite
+- `/treinos/montar/` Montar treino e salvar no banco configurado
 - `/treinos/<id>/` Detalhe de uma rotina salva
 - `/progresso/` Progresso
 - `/elite/` Elite e comunidade
-- `/exercicios/supino-reto/` Detalhes do exercício
+- `/exercicios/supino-reto/` Detalhes do exercicio
 
 ## Dados
 
-Os dados ficam em `db.sqlite3`. O comando `python manage.py seed_aerofit` recria perfil, atributos, exercícios, rotinas, plano semanal, progresso, ranking e desafios. A função de montagem está em `dashboard/services.py` como `montar_treino(...)`.
+Por padrao, os dados ficam em `db.sqlite3`. Quando `DATABASE_URL` estiver configurado, o Django usa o Postgres do Neon. O comando `python manage.py seed_aerofit` recria perfil, atributos, exercicios, rotinas, plano semanal, progresso, ranking e desafios. A funcao de montagem esta em `dashboard/services.py` como `montar_treino(...)`.

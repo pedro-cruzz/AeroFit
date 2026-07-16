@@ -180,12 +180,11 @@ class StudentWorkoutOwnershipTests(TestCase):
 
         response = self.client.get(reverse("dashboard:workout_builder"))
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], f"{reverse('dashboard:workouts')}?modal=1")
-
-        modal_response = self.client.get(response["Location"])
-        self.assertContains(modal_response, "workoutCreateModal")
-        self.assertContains(modal_response, "bootstrap.Modal.getOrCreateInstance(modalElement).show();")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "workoutCreateModal")
+        self.assertContains(response, "bootstrap.Modal.getOrCreateInstance(modalElement).show();")
+        self.assertContains(response, "body-split-title")
+        self.assertNotContains(response, "Cada planilha fica salva apenas para o aluno logado.")
 
     def test_student_only_sees_own_workouts(self):
         WorkoutRoutine.objects.create(owner=self.student, name="Minha", goal="forca")

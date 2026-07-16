@@ -19,7 +19,7 @@ from dashboard.models import (
 
 
 class Command(BaseCommand):
-    help = "Cria dados iniciais reais no SQLite para o AeroFit."
+    help = "Cria dados iniciais reais no banco configurado para o AeroFit."
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -212,4 +212,4 @@ class Command(BaseCommand):
             ]
         )
 
-        self.stdout.write(self.style.SUCCESS("Dados reais criados no SQLite com sucesso."))
+        self.stdout.write(self.style.SUCCESS("Dados reais criados no banco configurado com sucesso."))
