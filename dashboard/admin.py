@@ -42,7 +42,7 @@ class WorkoutRoutineAdmin(admin.ModelAdmin):
 
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "focus", "primary_muscle", "default_sets", "default_reps")
+    list_display = ("name", "category", "focus", "primary_muscle", "created_by", "default_sets", "default_reps")
     list_filter = ("category", "focus", "is_run")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name", "primary_muscle", "secondary_muscles")
