@@ -163,7 +163,7 @@
     <div class="scroll-row">
         {% for routine in routines %}
             <article class="routine-card-shell">
-                <a class="routine-card routine-goal-{{ routine.goal }}" href="{% url 'dashboard:routine_detail' routine.pk %}" style="background-image: url('{{ routine.image_url }}')">
+                <a class="routine-card routine-goal-{{ routine.goal }}" href="{% url 'dashboard:routine_detail' routine.pk %}" style="background-image: url('{{ routine.cover_image_url }}')">
                     <div class="routine-overlay"></div>
                     <div class="routine-content">
                         <span class="eyebrow goal-pill routine-goal-{{ routine.goal }}">{{ routine.type }}</span>

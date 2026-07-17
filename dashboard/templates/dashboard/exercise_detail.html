@@ -12,20 +12,7 @@
 </header>
 
 <main class="detail-main">
-    {% if exercise.youtube_embed_url %}
-        <section class="video-panel video-panel-embed">
-            <iframe
-                src="{{ exercise.youtube_embed_url }}"
-                title="Tutorial de {{ exercise.name }}"
-                loading="lazy"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen
-            ></iframe>
-        </section>
-        {% if exercise.video_credit %}
-            <p class="video-credit">Fonte: {{ exercise.video_credit }}</p>
-        {% endif %}
-    {% elif exercise.image_url %}
+    {% if exercise.image_url %}
         <section class="video-panel" style="background-image: url('{{ exercise.image_url }}')">
             <div class="video-shade"></div>
             <div class="video-caption">
@@ -39,12 +26,41 @@
     {% else %}
         <section class="video-panel video-panel-empty">
             <div class="media-empty-state">
-                <span class="material-symbols-outlined">video_library</span>
-                <strong>Video nao cadastrado</strong>
-                <small>Adicione um link do YouTube no cadastro do exercicio.</small>
+                <span class="material-symbols-outlined">image</span>
+                <strong>Imagem nao cadastrada</strong>
+                <small>Adicione uma imagem no cadastro do exercicio.</small>
             </div>
         </section>
     {% endif %}
+
+    <article class="surface-card media-card">
+        <div class="media-card-head">
+            <h2 class="section-title"><span class="material-symbols-outlined">video_library</span> Execucao em video</h2>
+            {% if exercise.youtube_embed_url %}<span class="duration">YouTube</span>{% endif %}
+        </div>
+        {% if exercise.youtube_embed_url %}
+            <section class="video-panel video-panel-embed video-card-frame">
+                <iframe
+                    src="{{ exercise.youtube_embed_url }}"
+                    title="Tutorial de {{ exercise.name }}"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                ></iframe>
+            </section>
+            {% if exercise.video_credit %}
+                <p class="video-credit">Fonte: {{ exercise.video_credit }}</p>
+            {% endif %}
+        {% else %}
+            <section class="video-panel video-panel-empty video-card-frame">
+                <div class="media-empty-state">
+                    <span class="material-symbols-outlined">smart_display</span>
+                    <strong>Video nao cadastrado</strong>
+                    <small>Adicione um link do YouTube no cadastro do exercicio para mostrar a execucao.</small>
+                </div>
+            </section>
+        {% endif %}
+    </article>
 
     <section class="row g-4">
         <div class="col-lg-6">

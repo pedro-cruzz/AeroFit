@@ -38,12 +38,12 @@ class Command(BaseCommand):
             preset = GOAL_PRESETS.get(routine.goal, GOAL_PRESETS["hipertrofia"])
             duration = estimate_workout_duration(routine.goal, items, preset["duration"])
             calories = estimate_workout_calories(routine.goal, duration, items, preset["calories"])
-            first_image = next((item["exercise"].image_url for item in items if item["exercise"].image_url), "")
+            cover_image = WorkoutRoutine.GOAL_COVER_IMAGES.get(routine.goal, routine.image_url)
 
             routine.duration_minutes = duration
             routine.calories = calories
-            if first_image:
-                routine.image_url = first_image
+            if cover_image:
+                routine.image_url = cover_image
             routine.save(update_fields=["duration_minutes", "calories", "image_url"])
             updated += 1
 

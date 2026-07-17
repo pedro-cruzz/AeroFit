@@ -149,6 +149,13 @@ class Exercise(models.Model):
 
 class WorkoutRoutine(models.Model):
     GOAL_CHOICES = Exercise.FOCUS_CHOICES
+    GOAL_COVER_IMAGES = {
+        "forca": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg",
+        "hipertrofia": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Press/0.jpg",
+        "endurance": "https://images.unsplash.com/photo-1502904550040-7534597429ae?auto=format&fit=crop&w=900&q=80",
+        "hiit": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Box_Jump/0.jpg",
+        "mobilidade": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80",
+    }
     WEEKDAY_CHOICES = [
         ("seg", "Segunda"),
         ("ter", "Terca"),
@@ -199,6 +206,14 @@ class WorkoutRoutine(models.Model):
         if not labels:
             return "Sem dias definidos"
         return ", ".join(labels)
+
+    @property
+    def goal_cover_image_url(self):
+        return self.GOAL_COVER_IMAGES.get(self.goal, "")
+
+    @property
+    def cover_image_url(self):
+        return self.goal_cover_image_url or self.image_url
 
 
 class WorkoutExercise(models.Model):

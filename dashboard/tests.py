@@ -207,6 +207,7 @@ class StudentWorkoutOwnershipTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(routine.owner, self.student)
         self.assertEqual(routine.training_days, ["seg", "qua", "sex"])
+        self.assertEqual(routine.image_url, WorkoutRoutine.GOAL_COVER_IMAGES["forca"])
         self.assertEqual(item.sets, 5)
         self.assertEqual(item.reps, "8")
 
@@ -346,14 +347,18 @@ class StudentWorkoutOwnershipTests(TestCase):
         self.assertContains(response, f'href="{reverse("dashboard:home")}"')
 
     def test_exercise_detail_embeds_youtube_video_when_configured(self):
+        self.exercise.image_url = "https://example.com/supino.jpg"
         self.exercise.video_url = "https://youtu.be/dQw4w9WgXcQ"
         self.exercise.video_credit = "Canal teste"
-        self.exercise.save(update_fields=["video_url", "video_credit"])
+        self.exercise.save(update_fields=["image_url", "video_url", "video_credit"])
         self.client.login(username=self.student.username, password=self.password)
 
         response = self.client.get(self.exercise.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "https://example.com/supino.jpg")
+        self.assertContains(response, "Referencia visual")
+        self.assertContains(response, "Execucao em video")
         self.assertContains(response, "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ")
         self.assertContains(response, "Fonte: Canal teste")
 
@@ -363,6 +368,7 @@ class StudentWorkoutOwnershipTests(TestCase):
         response = self.client.get(self.exercise.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Imagem nao cadastrada")
         self.assertContains(response, "Video nao cadastrado")
         self.assertContains(response, "Adicione um link do YouTube")
         self.assertNotContains(response, 'src=""')

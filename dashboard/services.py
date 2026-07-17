@@ -75,7 +75,7 @@ def montar_treino(name, goal, exercise_ids=None, exercise_configs=None, owner=No
             progress=0,
             is_template=False,
             training_days=training_days or [],
-            image_url=exercises[0].image_url,
+            image_url=WorkoutRoutine.GOAL_COVER_IMAGES.get(goal, exercises[0].image_url),
         )
 
         WorkoutExercise.objects.bulk_create(
